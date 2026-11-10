@@ -71,6 +71,8 @@ export const ScrollAnimationController: React.FC<ScrollAnimationControllerProps>
         eyeGlowIntensity: 0.12,
         galactusOpacity: 1.0,
         heroTextExitProgress: 0.0,
+        holoTransitionProgress: 0.0,
+        galactusHoloDissolve: 0.0,
         aboutRevealProgress: 0.0,
         aboutChapterProgress: 0.0,
       },
@@ -162,54 +164,70 @@ export const ScrollAnimationController: React.FC<ScrollAnimationControllerProps>
     );
 
     // =========================================================================
-    // SPATIAL 3D TRANSITION (58 -> 72): Screen 1 (Galactus) -> Screen 2 (About)
-    // Galactus dissolves & recedes into deep 3D space while the 3D Obsidian
-    // & Crystal Rocks + Diagonal Shard Stream emerge in the exact same 3D scene!
+    // SCROLL-TRIGGERED 3D HOLOGRAPHIC TRANSITION (57 -> 74):
+    // Screen 1 (Galactus) -> Screen 2 (About 3D Crystal Monolith) inside the
+    // exact same 3D space! Galactus undergoes a holographic laser scanline
+    // dissolve & voxel stream morph that materializes the 3D Obsidian Rock.
     // =========================================================================
+    // 1. Ramp up 3D Holographic Scan-Grid & Portal Gate Rings (57 -> 64)
     tl.to(
       state,
       {
+        holoTransitionProgress: 1.0,
         heroTextExitProgress: 1.0,
         beamIntensity: 0.0,
         eyeGlowIntensity: 0.0,
         eyeFlareScale: 0.0,
         pedestalGlowIntensity: 0.0,
         laserTrailIntensity: 0.0,
-        particleWarpSpeed: 2.2,
-        duration: 8,
+        particleWarpSpeed: 2.35,
+        duration: 7,
         ease: 'power2.inOut',
       },
-      58
+      57
     );
 
+    // 2. Sweep holographic dissolve across Galactus & stream 3D voxels to the Crystal Monolith (57 -> 70)
     tl.to(
       state,
       {
+        galactusHoloDissolve: 1.0,
         galactusOpacity: 0.0,
-        galactusZ: -8.5,
-        galactusScale: 0.42,
+        galactusZ: -7.5,
+        galactusScale: 0.46,
         characterDimming: 0.0,
         cameraZ: 10.2,
         cameraY: 0.05,
         cameraLookX: 0.15,
         cameraLookY: 0.02,
-        duration: 11,
+        duration: 12,
         ease: 'power2.inOut',
       },
-      59
+      58
     );
 
-    // Emerge 3D Obsidian & Crystal Monolith + Diagonal Micro-Shard Stream
+    // 3. Materialize the 3D Obsidian & Crystal Monolith + Diagonal Micro-Shard Stream (62 -> 73)
     tl.to(
       state,
       {
         aboutRevealProgress: 1.0,
         particleWarpSpeed: 0.32,
         rimLightIntensity: 1.35,
-        duration: 12,
+        duration: 11,
         ease: 'power3.out',
       },
-      63
+      62
+    );
+
+    // 4. Smoothly resolve the 3D Holographic Scan-Grid once the About Section is materialized (66 -> 74)
+    tl.to(
+      state,
+      {
+        holoTransitionProgress: 0.0,
+        duration: 8,
+        ease: 'power2.out',
+      },
+      66
     );
 
     // =========================================================================

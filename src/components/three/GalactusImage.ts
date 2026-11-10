@@ -80,6 +80,7 @@ export class GalactusCharacterRig {
         uRimIntensity: { value: 1.15 },
         uDimming: { value: 1.0 },
         uOpacity: { value: 1.0 },
+        uHoloDissolve: { value: 0.0 },
         uLeftEyeUV: { value: this.leftEyeUV },
         uRightEyeUV: { value: this.rightEyeUV },
         uCosmicColorA: { value: new THREE.Color('#a855f7') }, // Purple
@@ -91,6 +92,7 @@ export class GalactusCharacterRig {
         uniform float uDepthStrength;
         uniform float uCylinderCurve;
         uniform float uTime;
+        uniform float uHoloDissolve;
 
         varying vec2 vUv;
         varying vec3 vNormal;
@@ -113,9 +115,11 @@ export class GalactusCharacterRig {
           vec3 displacedPos = position;
           displacedPos.z += relief * uDepthStrength + cylArc;
 
-          // Subtle living cosmic pulse
+          // Subtle living cosmic pulse + holographic scanline lift during transition
           float breathe = sin(uTime * 1.4 + uv.y * 3.14159) * 0.015 * maskData.a;
-          displacedPos.z += breathe;
+          float holoWave = sin(uv.y * 42.0 - uTime * 10.0) * 0.16 * uHoloDissolve * maskData.a;
+          displacedPos.z += breathe + holoWave;
+          displacedPos.x += sin(uv.y * 90.0 + uTime * 18.0) * 0.045 * uHoloDissolve;
 
           // Dynamic surface normal perturbed by relief map for realistic 3D lighting as head turns
           float texel = 1.0 / 256.0;
@@ -141,6 +145,7 @@ export class GalactusCharacterRig {
         uniform float uRimIntensity;
         uniform float uDimming;
         uniform float uOpacity;
+        uniform float uHoloDissolve;
         uniform vec2 uLeftEyeUV;
         uniform vec2 uRightEyeUV;
         uniform vec3 uCosmicColorA;
@@ -157,7 +162,14 @@ export class GalactusCharacterRig {
           vec4 texColor = texture2D(uColorMap, vUv);
           vec4 maskData = texture2D(uDepthMaskMap, vUv);
 
-          float alpha = maskData.a * uOpacity;
+          // Holographic scan-front sweeps from bottom to top as uHoloDissolve goes 0 -> 1
+          float scanLine = 0.5 + 0.5 * sin(vUv.y * 180.0 - uTime * 14.0);
+          float sweepFront = uHoloDissolve * 1.25 - 0.12;
+          float sweepEdge = smoothstep(0.14, 0.0, abs(vUv.y - sweepFront)) * step(0.01, uHoloDissolve);
+          float aboveSweep = smoothstep(sweepFront - 0.08, sweepFront + 0.08, vUv.y);
+          float holoMask = mix(1.0, aboveSweep * (0.35 + 0.65 * scanLine), smoothstep(0.0, 0.85, uHoloDissolve));
+
+          float alpha = maskData.a * uOpacity * holoMask;
           if (alpha < 0.02) discard;
 
           vec3 baseCol = texColor.rgb;
@@ -188,10 +200,13 @@ export class GalactusCharacterRig {
             activeEyeCol * eyeCoreMask * (0.22 + uEyeGlow * 0.92) +
             uCosmicColorB * eyeHaloMask * uEyeGlow * 0.28;
 
+          // Holographic cyan/violet grid & laser scan-front glow during transition
+          vec3 holoGlow = mix(uCosmicColorC, uCosmicColorB, scanLine) * (sweepEdge * 2.2 + uHoloDissolve * scanLine * 0.75);
+
           // Smooth chin-to-neck blend
           float chinFade = smoothstep(0.35, 0.42, vUv.y);
 
-          vec3 finalColor = ((baseCol + rimContribution) * uDimming + eyeContribution) * uOpacity;
+          vec3 finalColor = ((baseCol + rimContribution) * uDimming + eyeContribution + holoGlow) * uOpacity;
           gl_FragColor = vec4(finalColor * chinFade, alpha * chinFade);
         }
       `,
@@ -216,14 +231,17 @@ export class GalactusCharacterRig {
         uDepthStrength: { value: 0.68 },
         uDimming: { value: 1.0 },
         uOpacity: { value: 1.0 },
+        uHoloDissolve: { value: 0.0 },
         uRimIntensity: { value: 1.15 },
         uCosmicColorA: { value: new THREE.Color('#a855f7') },
         uCosmicColorB: { value: new THREE.Color('#ec4899') },
+        uCosmicColorC: { value: new THREE.Color('#00f2fe') },
       },
       vertexShader: `
         uniform sampler2D uDepthMaskMap;
         uniform float uDepthStrength;
         uniform float uTime;
+        uniform float uHoloDissolve;
 
         varying vec2 vUv;
         varying vec3 vNormal;
@@ -240,9 +258,10 @@ export class GalactusCharacterRig {
           vec3 displacedPos = position;
           displacedPos.z += relief * uDepthStrength + chestArc;
 
-          // Living chest respiration
+          // Living chest respiration + holographic wave
           float breathe = sin(uTime * 1.2 + uv.y * 3.14159) * 0.02 * maskData.a;
-          displacedPos.z += breathe;
+          float holoWave = sin(uv.y * 42.0 - uTime * 10.0) * 0.14 * uHoloDissolve * maskData.a;
+          displacedPos.z += breathe + holoWave;
 
           float texel = 1.0 / 256.0;
           float dRight = texture2D(uDepthMaskMap, uv + vec2(texel, 0.0)).r;
@@ -265,9 +284,11 @@ export class GalactusCharacterRig {
         uniform float uTime;
         uniform float uDimming;
         uniform float uOpacity;
+        uniform float uHoloDissolve;
         uniform float uRimIntensity;
         uniform vec3 uCosmicColorA;
         uniform vec3 uCosmicColorB;
+        uniform vec3 uCosmicColorC;
 
         varying vec2 vUv;
         varying vec3 vNormal;
@@ -277,7 +298,13 @@ export class GalactusCharacterRig {
           vec4 texColor = texture2D(uColorMap, vUv);
           vec4 maskData = texture2D(uDepthMaskMap, vUv);
 
-          float alpha = maskData.a * uOpacity;
+          float scanLine = 0.5 + 0.5 * sin(vUv.y * 180.0 - uTime * 14.0);
+          float sweepFront = uHoloDissolve * 1.15 - 0.10;
+          float sweepEdge = smoothstep(0.14, 0.0, abs(vUv.y - sweepFront)) * step(0.01, uHoloDissolve);
+          float aboveSweep = smoothstep(sweepFront - 0.08, sweepFront + 0.08, vUv.y);
+          float holoMask = mix(1.0, aboveSweep * (0.35 + 0.65 * scanLine), smoothstep(0.0, 0.85, uHoloDissolve));
+
+          float alpha = maskData.a * uOpacity * holoMask;
           if (alpha < 0.02) discard;
 
           vec3 baseCol = texColor.rgb;
@@ -288,13 +315,15 @@ export class GalactusCharacterRig {
           vec3 rimHue = mix(uCosmicColorA, uCosmicColorB, 0.5 + 0.5 * sin(vUv.y * 3.0 + uTime));
           vec3 rimContribution = rimHue * (fresnel * 0.55 + maskData.b * 0.3) * uRimIntensity;
 
+          vec3 holoGlow = mix(uCosmicColorC, uCosmicColorB, scanLine) * (sweepEdge * 2.0 + uHoloDissolve * scanLine * 0.65);
+
           // Fade smoothly at the top collar into the dark neck socket
           float collarFade = 1.0 - smoothstep(0.42, 0.48, vUv.y);
           // Bottom vignette fade into deep cosmic void
           float bottomFade = smoothstep(0.01, 0.12, vUv.y);
 
           float netAlpha = alpha * collarFade * bottomFade;
-          vec3 finalColor = (baseCol + rimContribution) * uDimming * uOpacity;
+          vec3 finalColor = ((baseCol + rimContribution) * uDimming + holoGlow) * uOpacity;
           gl_FragColor = vec4(finalColor * bottomFade, netAlpha);
         }
       `,
@@ -778,6 +807,7 @@ export class GalactusCharacterRig {
     this.headPivotGroup.rotation.x = pointerY * 0.04;
 
     const opacity = state.galactusOpacity ?? 1.0;
+    const holoDissolve = state.galactusHoloDissolve ?? 0.0;
     this.group.visible = opacity > 0.005;
     if (!this.group.visible) return;
 
@@ -789,6 +819,7 @@ export class GalactusCharacterRig {
     hUniforms.uRimIntensity.value = state.rimLightIntensity * opacity;
     hUniforms.uDimming.value = state.characterDimming;
     hUniforms.uOpacity.value = opacity;
+    hUniforms.uHoloDissolve.value = holoDissolve;
 
     // 3. Update Torso Shader Uniforms
     const tUniforms = this.torsoMesh.material.uniforms;
@@ -797,6 +828,7 @@ export class GalactusCharacterRig {
     tUniforms.uDimming.value = state.characterDimming;
     tUniforms.uRimIntensity.value = state.rimLightIntensity * opacity;
     tUniforms.uOpacity.value = opacity;
+    tUniforms.uHoloDissolve.value = holoDissolve;
 
     this.headMesh.material.wireframe = overrides.showWireframeOverlay;
     this.torsoMesh.material.wireframe = overrides.showWireframeOverlay;

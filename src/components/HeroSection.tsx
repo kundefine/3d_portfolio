@@ -84,8 +84,14 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
   const handleStageChange = useCallback((stage: SceneStage, progress: number) => {
     if (stage !== prevStageRef.current) {
+      const prev = prevStageRef.current;
       prevStageRef.current = stage;
       cosmicAudio.playStageChime(stage);
+      if (stage === 7) {
+        setDockCollapsed(true);
+      } else if (prev === 7 && stage < 7) {
+        setDockCollapsed(false);
+      }
     }
     setActiveStage(stage);
     setScrollProgressPct(Math.round(progress * 100));
@@ -268,7 +274,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
         </div>
       )}
 
-      {/* Animated "Scroll to Navigate" Indicator with Mouse Wheel & Chevrons */}
+      {/* Compact Scroll Info Indicator on Bottom-Right alongside the Sound Indicator */}
       <button
         type="button"
         onClick={() => {
@@ -276,30 +282,22 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           jumpToScene(nextStage);
         }}
         title="Scroll with mouse wheel, touch, or arrow keys — or click to advance to the next 3D stage"
-        className="fixed left-6 bottom-20 sm:bottom-6 z-30 group flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] backdrop-blur-xl border border-white/15 hover:border-[#00f2fe]/50 shadow-[0_8px_30px_rgba(0,0,0,0.4)] transition-all duration-300 cursor-pointer"
+        className="fixed bottom-[4.5rem] right-5 sm:bottom-5 sm:right-44 z-40 group flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-[#0b0518]/95 hover:bg-[#130928] backdrop-blur-xl border border-white/15 hover:border-[#00f2fe]/60 shadow-2xl transition-all duration-200 cursor-pointer whitespace-nowrap shrink-0"
       >
         {/* Animated Mouse Wheel Shell */}
-        <div className="relative flex flex-col items-center justify-start w-5 h-8 rounded-full border-2 border-[#00f2fe]/80 pt-1.5 shrink-0">
-          <span className="w-1 h-2 rounded-full bg-[#00f2fe] animate-bounce" />
-        </div>
+        <span className="relative flex flex-col items-center justify-start w-4 h-7 rounded-full border-2 border-[#00f2fe]/85 pt-1 shrink-0">
+          <span className="w-1 h-1.5 rounded-full bg-[#00f2fe] animate-bounce" />
+        </span>
 
-        <div className="flex flex-col items-start text-left">
-          <span className="text-xs font-semibold tracking-wide text-white group-hover:text-[#00f2fe] transition-colors whitespace-nowrap">
-            {activeStage === 6
-              ? 'Scroll to 3D About Section'
-              : activeStage === 7
-              ? 'Scroll Up for Galactus · Down for Slides'
-              : 'Scroll to Navigate'}
-          </span>
-          <span className="text-[11px] font-mono text-[#c4b5fd] whitespace-nowrap">
-            {scrollProgressPct === 0
-              ? 'Wheel · Touch · Arrows'
-              : `Scene 0${activeStage} / 07 · ${scrollProgressPct}%`}
-          </span>
-        </div>
+        {/* Concise Info Part Only */}
+        <span className="text-xs font-mono text-[#e9d5ff] group-hover:text-white transition-colors tabular-nums">
+          {scrollProgressPct === 0
+            ? 'Scroll · 0%'
+            : `0${activeStage}/07 · ${scrollProgressPct}%`}
+        </span>
 
         {/* Animated Cascading Downward Chevrons */}
-        <ChevronsDown className="w-4 h-4 text-[#ec4899] animate-bounce ml-0.5 shrink-0" />
+        <ChevronsDown className="w-3.5 h-3.5 text-[#ec4899] animate-bounce shrink-0" />
       </button>
 
       {/* Unified Collapsible Bottom Control Dock (<= 15% viewport height, solid rgba surface) */}

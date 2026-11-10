@@ -53,8 +53,10 @@ export interface CinematicState {
   activeCharNormalizedX: number;
   activeCharNormalizedY: number;
 
-  // Screen 2 (About Section) 3D Obsidian & Crystal Rock Stage in the same 3D space
-  aboutRevealProgress: number; // 0 = hidden in deep space, 1 = fully assembled on right side
+  // Screen 2 (About Section) & Scroll-Triggered 3D Holographic Transition State
+  holoTransitionProgress: number; // 0 -> 1 -> 0 bell curve across the Hero-to-About 3D transition zone
+  galactusHoloDissolve: number; // 0 = solid Galactus, 1 = fully dissolved via holographic scan-wave
+  aboutRevealProgress: number; // 0 = hidden in deep space, 1 = fully materialized on right side
   aboutChapterProgress: number; // 0 -> 2 across the 3 About Me chapters
   aboutRockUserYaw: number; // Interactive drag/slider yaw offset
   aboutRockUserPitch: number; // Interactive drag/slider pitch offset
@@ -117,6 +119,8 @@ export const INITIAL_CINEMATIC_STATE: CinematicState = {
   heroTextExitProgress: 0,
   activeCharNormalizedX: -0.45,
   activeCharNormalizedY: -0.42,
+  holoTransitionProgress: 0,
+  galactusHoloDissolve: 0,
   aboutRevealProgress: 0,
   aboutChapterProgress: 0,
   aboutRockUserYaw: 0,

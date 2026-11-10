@@ -199,6 +199,7 @@ export class AboutCrystalRocksSystem {
   private purpleCrystalMat: THREE.MeshPhysicalMaterial;
   private purpleCoreMat: THREE.MeshBasicMaterial;
   private shardMat: THREE.MeshStandardMaterial;
+  private rockHoloWireMat: THREE.LineBasicMaterial;
 
   private tealLight: THREE.PointLight;
   private purpleLight: THREE.PointLight;
@@ -271,10 +272,24 @@ export class AboutCrystalRocksSystem {
       opacity: 0.7,
     });
 
-    // 2. Main Sculpted Black Obsidian Monolith
+    // 2. Main Sculpted Black Obsidian Monolith + Holographic Materialization Wireframe Shell
     const mainRockGeo = createObsidianMonolithGeometry(1.62, isSoftwareGl ? 3 : 4, true);
     const mainRockMesh = new THREE.Mesh(mainRockGeo, this.obsidianMat);
     this.monolithPivot.add(mainRockMesh);
+
+    this.rockHoloWireMat = new THREE.LineBasicMaterial({
+      color: new THREE.Color('#00f2fe'),
+      transparent: true,
+      opacity: 0.0,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+    const rockHoloEdges = new THREE.LineSegments(
+      new THREE.EdgesGeometry(mainRockGeo, 14),
+      this.rockHoloWireMat
+    );
+    rockHoloEdges.scale.setScalar(1.008);
+    this.monolithPivot.add(rockHoloEdges);
 
     // 3. Top Emerald-Teal Crystal Spire emerging from the upper ridge
     const tealCrystalGroup = new THREE.Group();
@@ -515,18 +530,22 @@ export class AboutCrystalRocksSystem {
       (overrides.reducedMotion ? 0 : Math.cos(elapsedTime * 0.55) * 0.06) +
       scatterFactor * 0.65;
 
-    this.dampedRotY = THREE.MathUtils.lerp(this.dampedRotY, targetRotY, 0.12);
-    this.dampedRotX = THREE.MathUtils.lerp(this.dampedRotX, targetRotX, 0.12);
+    const rotVelocity = Math.min(1.0, Math.abs(targetRotY - this.dampedRotY) * 2.2);
+    this.dampedRotY = THREE.MathUtils.lerp(this.dampedRotY, targetRotY, 0.14);
+    this.dampedRotX = THREE.MathUtils.lerp(this.dampedRotX, targetRotX, 0.14);
+
+    // Subtle kinetic scale pulse when sliding the 3D slider
+    this.monolithPivot.scale.setScalar(monolithScale * (1.0 + rotVelocity * 0.065));
 
     this.monolithPivot.rotation.set(
       this.dampedRotX,
       this.dampedRotY,
-      -0.06 + Math.sin(elapsedTime * 0.5) * 0.03
+      -0.06 + Math.sin(elapsedTime * 0.5) * 0.03 - rotVelocity * 0.08
     );
 
-    // Pulse the internal Teal & Violet Crystal lights
-    const pulseTeal = 0.85 + 0.25 * Math.sin(elapsedTime * 2.4);
-    const pulsePurple = 0.85 + 0.25 * Math.cos(elapsedTime * 2.1 + 1.0);
+    // Pulse the internal Teal & Violet Crystal lights (+ kinetic flare when sliding)
+    const pulseTeal = 0.85 + 0.25 * Math.sin(elapsedTime * 2.4) + rotVelocity * 0.65;
+    const pulsePurple = 0.85 + 0.25 * Math.cos(elapsedTime * 2.1 + 1.0) + rotVelocity * 0.65;
 
     // Emphasize crystal glow based on active About chapter (0 = Teal focus, 1 = Dual, 2 = Violet focus)
     const chapter = state.aboutChapterProgress;
@@ -538,8 +557,17 @@ export class AboutCrystalRocksSystem {
     this.tealCrystalMat.emissiveIntensity = 0.95 * pulseTeal * tealBoost;
     this.purpleCrystalMat.emissiveIntensity = 1.05 * pulsePurple * purpleBoost;
 
-    this.obsidianRimLightRight.intensity = 3.4 * easedReveal;
-    this.obsidianRimLightBottom.intensity = 3.2 * easedReveal;
+    this.obsidianRimLightRight.intensity = (3.4 + rotVelocity * 1.4) * easedReveal;
+    this.obsidianRimLightBottom.intensity = (3.2 + rotVelocity * 1.2) * easedReveal;
+
+    // Glow the holographic wireframe blueprint shell during transition OR when sliding the 3D slider
+    const holoTrans = state.holoTransitionProgress || 0;
+    this.rockHoloWireMat.opacity = overrides.showWireframeOverlay
+      ? 0.55
+      : Math.min(
+          0.85,
+          holoTrans * 0.9 + (1.0 - easedReveal) * 0.5 + rotVelocity * 0.55
+        );
 
     this.obsidianMat.wireframe = overrides.showWireframeOverlay;
     this.tealCrystalMat.wireframe = overrides.showWireframeOverlay;
@@ -606,6 +634,7 @@ export class AboutCrystalRocksSystem {
     this.purpleCrystalMat.dispose();
     this.purpleCoreMat.dispose();
     this.shardMat.dispose();
+    this.rockHoloWireMat.dispose();
 
     this.group.traverse((obj) => {
       if (obj instanceof THREE.Mesh || obj instanceof THREE.LineSegments) {

@@ -7,6 +7,7 @@ import { EyeGlowSystem } from './EyeGlow';
 import { EnergyBeamSystem } from './EnergyBeam';
 import { CosmicParticlesSystem } from './CosmicParticles';
 import { AboutCrystalRocksSystem } from './AboutCrystalRocks';
+import { HolographicTransition3DSystem } from './HolographicTransition3D';
 import { cosmicAudio } from '../../utils/cosmicAudio';
 
 // Pre-allocated module-scope vectors & colors to avoid GC in the render loop
@@ -129,6 +130,9 @@ export const GalactusScene: React.FC<GalactusSceneProps> = ({
 
     const aboutCrystalRocks = new AboutCrystalRocksSystem(isSoftwareGl);
     scene.add(aboutCrystalRocks.group);
+
+    const holoTransition3D = new HolographicTransition3DSystem(isSoftwareGl);
+    scene.add(holoTransition3D.group);
 
     if (!isSoftwareGl) {
       renderer.compile(scene, camera);
@@ -293,6 +297,15 @@ export const GalactusScene: React.FC<GalactusSceneProps> = ({
         isPortrait
       );
 
+      // Update 3D Spatial Holographic Scan-Grid & Voxel Morph Stream between Screen 1 and Screen 2
+      holoTransition3D.update(
+        elapsed,
+        state,
+        overrides,
+        dampedPointerX,
+        dampedPointerY
+      );
+
       cosmicParticles.update(elapsed, state, overrides);
       cosmicAudio.updateFromCinematicState(state);
 
@@ -326,6 +339,7 @@ export const GalactusScene: React.FC<GalactusSceneProps> = ({
       energyBeam.dispose();
       cosmicParticles.dispose();
       aboutCrystalRocks.dispose();
+      holoTransition3D.dispose();
       envTexture.dispose();
       renderer.dispose();
     };
