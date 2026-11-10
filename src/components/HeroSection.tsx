@@ -20,6 +20,7 @@ import {
 import { GalactusScene } from './three/GalactusScene';
 import { ScrollAnimationController } from './ScrollAnimationController';
 import { IntroductionText } from './IntroductionText';
+import { AboutSectionOverlay } from './AboutSectionOverlay';
 import { cosmicAudio } from '../utils/cosmicAudio';
 
 interface HeroSectionProps {
@@ -90,6 +91,12 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
     setScrollProgressPct(Math.round(progress * 100));
   }, []);
 
+  const seekToProgress = useCallback((ratio: number) => {
+    if (seekToProgressRef.current) {
+      seekToProgressRef.current(ratio);
+    }
+  }, []);
+
   const jumpToScene = useCallback((stage: SceneStage) => {
     const chapter = SCENE_CHAPTERS.find((c) => c.stage === stage);
     if (!chapter) return;
@@ -114,8 +121,6 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
       }
       if (e.key === 'h' || e.key === 'H') {
         setDockCollapsed((prev) => !prev);
-      } else if (e.key === 'm' || e.key === 'M') {
-        cosmicAudio.toggleMute();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -220,10 +225,20 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           />
         </div>
 
-        {/* SVG Outline Wireframe Text Animation ("Hi, My name is Md Kajal Mia") */}
+        {/* Screen 1: SVG Outline Wireframe Text Animation ("Hi, My name is Md Kajal Mia") */}
         <IntroductionText
           cinematicStateRef={cinematicStateRef}
           overridesRef={overridesRef}
+          onScrollToAbout={() => jumpToScene(7)}
+          onExploreWork={onExploreWork}
+          onContactClick={onContactClick}
+        />
+
+        {/* Screen 2: About Section Editorial Typography & 3D Perspective Slider in the same 3D space */}
+        <AboutSectionOverlay
+          cinematicStateRef={cinematicStateRef}
+          overridesRef={overridesRef}
+          onSeekToProgress={seekToProgress}
           onExploreWork={onExploreWork}
           onContactClick={onContactClick}
         />
@@ -236,52 +251,56 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
         className="pointer-events-none absolute inset-0 z-10 bg-[#040208] opacity-0"
       />
 
-      {/* Subtle top-left minimal narrative spec readout (unboxed clean text with · separators) */}
-      <div
-        ref={narrativeReadoutRef}
-        className="pointer-events-none absolute top-20 left-6 z-20 hidden sm:flex flex-col gap-1 max-w-md"
-      >
-        <div className="flex items-center gap-2 text-xs font-mono text-[#c4b5fd]">
-          <span>{currentChapter.title}</span>
-          <span aria-hidden="true">·</span>
-          <span className="tabular-nums">{String(scrollProgressPct).padStart(2, '0')}%</span>
-        </div>
-        <p className="text-xs text-[#a394b8] leading-relaxed">
-          {currentChapter.subtitle}
-        </p>
-      </div>
-
-      {/* Animated "Scroll to Navigate" Indicator with Mouse Wheel & Cascading Chevrons */}
-      {scrollProgressPct < 92 && (
-        <button
-          type="button"
-          onClick={() => {
-            const nextStage = Math.min(6, activeStage + 1) as SceneStage;
-            jumpToScene(nextStage);
-          }}
-          title="Scroll or click to advance to the next scene"
-          className="fixed left-6 bottom-20 sm:bottom-6 z-30 group flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] backdrop-blur-xl border border-white/15 hover:border-[#00f2fe]/50 shadow-[0_8px_30px_rgba(0,0,0,0.4)] transition-all duration-300 cursor-pointer"
+      {/* Subtle top-left minimal narrative spec readout during Galactus Hero scenes (Stages 1-6) */}
+      {activeStage < 7 && (
+        <div
+          ref={narrativeReadoutRef}
+          className="pointer-events-none absolute top-20 left-6 z-20 hidden sm:flex flex-col gap-1 max-w-md"
         >
-          {/* Animated Mouse Wheel Shell */}
-          <div className="relative flex flex-col items-center justify-start w-5 h-8 rounded-full border-2 border-[#00f2fe]/80 pt-1.5 shrink-0">
-            <span className="w-1 h-2 rounded-full bg-[#00f2fe] animate-bounce" />
+          <div className="flex items-center gap-2 text-xs font-mono text-[#c4b5fd]">
+            <span>{currentChapter.title}</span>
+            <span aria-hidden="true">·</span>
+            <span className="tabular-nums">{String(scrollProgressPct).padStart(2, '0')}%</span>
           </div>
-
-          <div className="flex flex-col items-start text-left">
-            <span className="text-xs font-semibold tracking-wide text-white group-hover:text-[#00f2fe] transition-colors whitespace-nowrap">
-              Scroll to Navigate
-            </span>
-            <span className="text-[11px] font-mono text-[#c4b5fd] whitespace-nowrap">
-              {scrollProgressPct === 0
-                ? 'Wheel · Touch · Arrows'
-                : `Scene 0${activeStage} / 06 · ${scrollProgressPct}%`}
-            </span>
-          </div>
-
-          {/* Animated Cascading Downward Chevrons */}
-          <ChevronsDown className="w-4 h-4 text-[#ec4899] animate-bounce ml-0.5 shrink-0" />
-        </button>
+          <p className="text-xs text-[#a394b8] leading-relaxed">
+            {currentChapter.subtitle}
+          </p>
+        </div>
       )}
+
+      {/* Animated "Scroll to Navigate" Indicator with Mouse Wheel & Chevrons */}
+      <button
+        type="button"
+        onClick={() => {
+          const nextStage = (activeStage < 7 ? activeStage + 1 : 1) as SceneStage;
+          jumpToScene(nextStage);
+        }}
+        title="Scroll with mouse wheel, touch, or arrow keys — or click to advance to the next 3D stage"
+        className="fixed left-6 bottom-20 sm:bottom-6 z-30 group flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] backdrop-blur-xl border border-white/15 hover:border-[#00f2fe]/50 shadow-[0_8px_30px_rgba(0,0,0,0.4)] transition-all duration-300 cursor-pointer"
+      >
+        {/* Animated Mouse Wheel Shell */}
+        <div className="relative flex flex-col items-center justify-start w-5 h-8 rounded-full border-2 border-[#00f2fe]/80 pt-1.5 shrink-0">
+          <span className="w-1 h-2 rounded-full bg-[#00f2fe] animate-bounce" />
+        </div>
+
+        <div className="flex flex-col items-start text-left">
+          <span className="text-xs font-semibold tracking-wide text-white group-hover:text-[#00f2fe] transition-colors whitespace-nowrap">
+            {activeStage === 6
+              ? 'Scroll to 3D About Section'
+              : activeStage === 7
+              ? 'Scroll Up for Galactus · Down for Slides'
+              : 'Scroll to Navigate'}
+          </span>
+          <span className="text-[11px] font-mono text-[#c4b5fd] whitespace-nowrap">
+            {scrollProgressPct === 0
+              ? 'Wheel · Touch · Arrows'
+              : `Scene 0${activeStage} / 07 · ${scrollProgressPct}%`}
+          </span>
+        </div>
+
+        {/* Animated Cascading Downward Chevrons */}
+        <ChevronsDown className="w-4 h-4 text-[#ec4899] animate-bounce ml-0.5 shrink-0" />
+      </button>
 
       {/* Unified Collapsible Bottom Control Dock (<= 15% viewport height, solid rgba surface) */}
       <div
@@ -424,7 +443,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                   { stage: 3 as SceneStage, label: '03. Prism Lasers' },
                   { stage: 4 as SceneStage, label: '04. Outline Trace' },
                   { stage: 5 as SceneStage, label: '05. Name Wireframe' },
-                  { stage: 6 as SceneStage, label: '06. Full Reveal' },
+                  { stage: 6 as SceneStage, label: '06. Hero Reveal' },
+                  { stage: 7 as SceneStage, label: '07. About (3D Rocks)' },
                 ].map((item) => {
                   const isActive = activeStage === item.stage;
                   return (

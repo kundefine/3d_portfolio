@@ -1,9 +1,9 @@
-export type SceneStage = 1 | 2 | 3 | 4 | 5 | 6;
+export type SceneStage = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
 export interface CinematicState {
   // Overall scroll progress 0 -> 1
   progress: number;
-  // Active scene number 1 -> 6
+  // Active scene number 1 -> 7
   sceneStage: SceneStage;
 
   // Camera & Character orientation / comfortable distance from screen
@@ -14,10 +14,11 @@ export interface CinematicState {
   cameraFov: number;
   galactusZ: number;
   galactusScale: number;
-  galactusYaw: number; // +0.88 rad (~50 deg right) for head-only rotation -> 0.0 rad (front)
+  galactusYaw: number; // +0.78 rad (~45 deg right) for head-only rotation -> 0.0 rad (front)
   galactusPitch: number;
   depthRelief: number;
   characterDimming: number;
+  galactusOpacity: number; // 1.0 in Hero -> 0.0 as Galactus dissolves into 3D space
 
   // Atmosphere & Lighting
   atmosphereIntensity: number;
@@ -46,10 +47,17 @@ export interface CinematicState {
   // Outline Wireframe Text Animation Progress (0 -> 1 traces "Hi, My name is Md Kajal Mia")
   introRevealProgress: number;
   subtitleRevealProgress: number;
+  heroTextExitProgress: number; // 0 -> 1 floats Hero text away in 3D space when scrolling to About
 
   // Real-time DOM-to-3D unprojection coordinates of the active wireframe outline point
   activeCharNormalizedX: number;
   activeCharNormalizedY: number;
+
+  // Screen 2 (About Section) 3D Obsidian & Crystal Rock Stage in the same 3D space
+  aboutRevealProgress: number; // 0 = hidden in deep space, 1 = fully assembled on right side
+  aboutChapterProgress: number; // 0 -> 2 across the 3 About Me chapters
+  aboutRockUserYaw: number; // Interactive drag/slider yaw offset
+  aboutRockUserPitch: number; // Interactive drag/slider pitch offset
 }
 
 export interface DirectorOverrides {
@@ -89,6 +97,7 @@ export const INITIAL_CINEMATIC_STATE: CinematicState = {
   galactusPitch: 0.02,
   depthRelief: 0.72,
   characterDimming: 1.0,
+  galactusOpacity: 1.0,
   atmosphereIntensity: 0.35,
   rimLightIntensity: 1.15,
   particleWarpSpeed: 0.15,
@@ -105,8 +114,13 @@ export const INITIAL_CINEMATIC_STATE: CinematicState = {
   pedestalGlowIntensity: 0,
   introRevealProgress: 0,
   subtitleRevealProgress: 0,
+  heroTextExitProgress: 0,
   activeCharNormalizedX: -0.45,
   activeCharNormalizedY: -0.42,
+  aboutRevealProgress: 0,
+  aboutChapterProgress: 0,
+  aboutRockUserYaw: 0,
+  aboutRockUserPitch: 0,
 };
 
 export const SCENE_CHAPTERS: Array<{
@@ -125,30 +139,36 @@ export const SCENE_CHAPTERS: Array<{
     stage: 2,
     title: 'Scene 02 · Head Rotates to Front',
     subtitle: 'Only Galactus’s head rotates smoothly to face forward while his torso stays anchored.',
-    scrollTargetRatio: 0.20,
+    scrollTargetRatio: 0.16,
   },
   {
     stage: 3,
     title: 'Scene 03 · Multicolor Line Laser Volley',
     subtitle: 'Balanced eye glow ignites a spectrum of multicolor line laser beams.',
-    scrollTargetRatio: 0.34,
+    scrollTargetRatio: 0.24,
   },
   {
     stage: 4,
     title: 'Scene 04 · Wireframe Outline Laser Tracing',
     subtitle: 'Multicolor laser lines trace the wireframe outline of "Hi, My name is...".',
-    scrollTargetRatio: 0.54,
+    scrollTargetRatio: 0.36,
   },
   {
     stage: 5,
     title: 'Scene 05 · Engraving "Md Kajal Mia" Outline',
     subtitle: 'Laser beams complete the vector wireframe stroke animation across the screen.',
-    scrollTargetRatio: 0.78,
+    scrollTargetRatio: 0.48,
   },
   {
     stage: 6,
     title: 'Scene 06 · Completed Wireframe & Fill Reveal',
     subtitle: '"Hi, My name is Md Kajal Mia" — Senior Software Engineer | Full-Stack Developer.',
-    scrollTargetRatio: 0.96,
+    scrollTargetRatio: 0.58,
+  },
+  {
+    stage: 7,
+    title: 'Scene 07 · About Section · 3D Crystal Obsidian Space',
+    subtitle: 'Galactus dissolves into deep space as the 3D obsidian & crystal rock monolith emerges.',
+    scrollTargetRatio: 0.78,
   },
 ];

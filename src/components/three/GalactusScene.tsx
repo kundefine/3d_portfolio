@@ -6,12 +6,16 @@ import { GalactusCharacterRig, GALACTUS_IMAGE_PATH } from './GalactusImage';
 import { EyeGlowSystem } from './EyeGlow';
 import { EnergyBeamSystem } from './EnergyBeam';
 import { CosmicParticlesSystem } from './CosmicParticles';
+import { AboutCrystalRocksSystem } from './AboutCrystalRocks';
 import { cosmicAudio } from '../../utils/cosmicAudio';
 
-// Pre-allocated module-scope vectors to avoid GC in the render loop
+// Pre-allocated module-scope vectors & colors to avoid GC in the render loop
 const _leftEyeWorld = new THREE.Vector3();
 const _rightEyeWorld = new THREE.Vector3();
 const _lookAtTarget = new THREE.Vector3();
+const _heroBgColor = new THREE.Color('#040208');
+const _aboutBgColor = new THREE.Color('#0b0c10');
+const _blendedBgColor = new THREE.Color('#040208');
 
 interface GalactusSceneProps {
   cinematicStateRef: React.MutableRefObject<CinematicState>;
@@ -81,7 +85,8 @@ export const GalactusScene: React.FC<GalactusSceneProps> = ({
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color('#040208');
-    scene.fog = new THREE.FogExp2('#040208', 0.042);
+    const fog = new THREE.FogExp2('#040208', 0.042);
+    scene.fog = fog;
 
     // Studio Environment Reflection (RoomEnvironment + PMREMGenerator)
     const pmremGenerator = new THREE.PMREMGenerator(renderer);
@@ -108,7 +113,7 @@ export const GalactusScene: React.FC<GalactusSceneProps> = ({
     rimLightRight.position.set(6.0, 2.5, -3.5);
     scene.add(rimLightRight);
 
-    // 4. Instantiate Modular 3D Scene Subsystems
+    // 4. Instantiate Modular 3D Scene Subsystems (Screen 1: Galactus + Screen 2: About Crystal Rocks)
     const maxAnisotropy = renderer.capabilities.getMaxAnisotropy();
     const galactusRig = new GalactusCharacterRig(maxAnisotropy);
     scene.add(galactusRig.group);
@@ -122,22 +127,63 @@ export const GalactusScene: React.FC<GalactusSceneProps> = ({
     const cosmicParticles = new CosmicParticlesSystem(isSoftwareGl);
     scene.add(cosmicParticles.group);
 
+    const aboutCrystalRocks = new AboutCrystalRocksSystem(isSoftwareGl);
+    scene.add(aboutCrystalRocks.group);
+
     if (!isSoftwareGl) {
       renderer.compile(scene, camera);
     }
 
-    // 5. Pointer Parallax & Responsive Resize
+    // 5. Pointer Parallax, Interactive 3D Rock Dragging, & Responsive Resize
     let targetPointerX = 0;
     let targetPointerY = 0;
     let dampedPointerX = 0;
     let dampedPointerY = 0;
 
+    let isDraggingRock = false;
+    let lastDragX = 0;
+    let lastDragY = 0;
+
+    const handlePointerDown = (e: PointerEvent) => {
+      if (cinematicStateRef.current.aboutRevealProgress < 0.25) return;
+      if (
+        e.target instanceof Element &&
+        e.target.closest('button, a, input, select, textarea, [data-no-rock-drag="true"]')
+      ) {
+        return;
+      }
+      isDraggingRock = true;
+      lastDragX = e.clientX;
+      lastDragY = e.clientY;
+    };
+
     const handlePointerMove = (e: PointerEvent) => {
+      if (isDraggingRock && cinematicStateRef.current.aboutRevealProgress >= 0.25) {
+        const dx = e.clientX - lastDragX;
+        const dy = e.clientY - lastDragY;
+        lastDragX = e.clientX;
+        lastDragY = e.clientY;
+        cinematicStateRef.current.aboutRockUserYaw += dx * 0.0065;
+        cinematicStateRef.current.aboutRockUserPitch = THREE.MathUtils.clamp(
+          cinematicStateRef.current.aboutRockUserPitch + dy * 0.0045,
+          -0.65,
+          0.65
+        );
+      }
+
       if (overridesRef.current.reducedMotion) return;
       targetPointerX = (e.clientX / window.innerWidth - 0.5) * 2;
       targetPointerY = -(e.clientY / window.innerHeight - 0.5) * 2;
     };
+
+    const handlePointerUp = () => {
+      isDraggingRock = false;
+    };
+
+    window.addEventListener('pointerdown', handlePointerDown, { passive: true });
     window.addEventListener('pointermove', handlePointerMove, { passive: true });
+    window.addEventListener('pointerup', handlePointerUp, { passive: true });
+    window.addEventListener('pointercancel', handlePointerUp, { passive: true });
 
     const handleResize = () => {
       if (!mountEl) return;
@@ -222,6 +268,13 @@ export const GalactusScene: React.FC<GalactusSceneProps> = ({
       _lookAtTarget.set(dampedLookX + dampedPointerX * 0.08, dampedLookY, 0);
       camera.lookAt(_lookAtTarget);
 
+      // Smoothly blend background tone between Deep Space Violet-Black (Hero) and Obsidian Charcoal (About)
+      _blendedBgColor.copy(_heroBgColor).lerp(_aboutBgColor, state.aboutRevealProgress);
+      (scene.background as THREE.Color).copy(_blendedBgColor);
+      fog.color.copy(_blendedBgColor);
+      fog.density = THREE.MathUtils.lerp(0.042, 0.024, state.aboutRevealProgress);
+
+      // Update Screen 1: Galactus & Laser Systems
       galactusRig.update(elapsed, state, overrides, dampedPointerX, dampedPointerY);
 
       const effectiveDepth = state.depthRelief * overrides.reliefMultiplier;
@@ -229,6 +282,16 @@ export const GalactusScene: React.FC<GalactusSceneProps> = ({
 
       eyeGlow.update(elapsed, _leftEyeWorld, _rightEyeWorld, state, overrides);
       energyBeam.update(elapsed, _leftEyeWorld, _rightEyeWorld, camera, state, overrides);
+
+      // Update Screen 2: About 3D Obsidian & Crystal Rocks + Diagonal Micro-Shard Stream
+      aboutCrystalRocks.update(
+        elapsed,
+        state,
+        overrides,
+        dampedPointerX,
+        dampedPointerY,
+        isPortrait
+      );
 
       cosmicParticles.update(elapsed, state, overrides);
       cosmicAudio.updateFromCinematicState(state);
@@ -251,7 +314,10 @@ export const GalactusScene: React.FC<GalactusSceneProps> = ({
       isUnmounted = true;
       cancelAnimationFrame(frameId);
       clearTimeout(frameId);
+      window.removeEventListener('pointerdown', handlePointerDown);
       window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+      window.removeEventListener('pointercancel', handlePointerUp);
       window.removeEventListener('resize', handleResize);
       canvasEl.removeEventListener('webglcontextlost', handleContextLost);
 
@@ -259,6 +325,7 @@ export const GalactusScene: React.FC<GalactusSceneProps> = ({
       eyeGlow.dispose();
       energyBeam.dispose();
       cosmicParticles.dispose();
+      aboutCrystalRocks.dispose();
       envTexture.dispose();
       renderer.dispose();
     };

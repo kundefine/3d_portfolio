@@ -4,6 +4,8 @@ export const LASER_BEAM_SOUND_PATH =
   '/assets/aistudio/laser-beam-sound_b3d8c3ea.mp4';
 export const AMBIENT_LOOP_SOUND_PATH =
   '/assets/aistudio/ambient-loop_de3c97a4.wav';
+export const HOME_TRANSITION_SOUND_PATH =
+  '/assets/aistudio/home-transition_8ecda214.wav';
 
 // Sustain window in laser-beam-sound_b3d8c3ea.mp4 (2.763s total):
 // Plays from 0.000s through 2.680s as a single continuous track; if the user takes longer than 2.68s
@@ -20,6 +22,11 @@ class CosmicAudioEngine {
 
   // Continuous background ambient audio (/assets/aistudio/ambient-loop_de3c97a4.wav)
   private ambientAudio: HTMLAudioElement | null = null;
+
+  // Holographic screen transition audio (/assets/aistudio/home-transition_8ecda214.wav)
+  private transitionAudioBuffer: AudioBuffer | null = null;
+  private transitionBufferLoading = false;
+  private fallbackTransitionAudio: HTMLAudioElement | null = null;
 
   // Decoded Web Audio buffer & seamless single-stream nodes for /assets/aistudio/laser-beam-sound_b3d8c3ea.mp4
   private laserAudioBuffer: AudioBuffer | null = null;
@@ -38,6 +45,7 @@ class CosmicAudioEngine {
   private isInitialized = false;
   private lastHoverTime = 0;
   private lastStageChimeTime = 0;
+  private lastTransitionTime = 0;
   private prevIntroProgress = 0;
   private listeners = new Set<AudioListenerCallback>();
 
@@ -52,6 +60,11 @@ class CosmicAudioEngine {
       this.fallbackLaserAudio.loop = false;
       this.fallbackLaserAudio.preload = 'auto';
       this.fallbackLaserAudio.volume = 0;
+
+      this.fallbackTransitionAudio = new Audio(HOME_TRANSITION_SOUND_PATH);
+      this.fallbackTransitionAudio.loop = false;
+      this.fallbackTransitionAudio.preload = 'auto';
+      this.fallbackTransitionAudio.volume = 0;
     }
   }
 
@@ -76,7 +89,7 @@ class CosmicAudioEngine {
 
   /**
    * Initializes the Web Audio API context and decodes laser-beam-sound_b3d8c3ea.mp4
-   * into an AudioBuffer for synchronized single-audio playback.
+   * and home-transition_8ecda214.wav into AudioBuffers.
    */
   private initContext() {
     if (!this.isInitialized || !this.ctx) {
@@ -117,6 +130,21 @@ class CosmicAudioEngine {
         })
         .catch(() => {
           this.laserBufferLoading = false;
+        });
+    }
+
+    // Fetch and decode home-transition_8ecda214.wav
+    if (this.ctx && !this.transitionAudioBuffer && !this.transitionBufferLoading) {
+      this.transitionBufferLoading = true;
+      fetch(HOME_TRANSITION_SOUND_PATH)
+        .then((res) => res.arrayBuffer())
+        .then((arrayBuf) => this.ctx!.decodeAudioData(arrayBuf))
+        .then((decoded) => {
+          this.transitionAudioBuffer = decoded;
+          this.transitionBufferLoading = false;
+        })
+        .catch(() => {
+          this.transitionBufferLoading = false;
         });
     }
   }
@@ -407,6 +435,7 @@ class CosmicAudioEngine {
       4: 2240,
       5: 2560,
       6: 2940,
+      7: 3320,
     };
 
     const freq = stageBaseFreq[stage] || 1680;
@@ -428,6 +457,41 @@ class CosmicAudioEngine {
 
     osc.start(now);
     osc.stop(now + 0.06);
+  }
+
+  /**
+   * Plays /assets/aistudio/home-transition_8ecda214.wav during the holographic transition
+   * between the Hero screen and the About Me section.
+   */
+  public playHomeTransitionSound() {
+    if (this.isMuted) return;
+
+    const perfNow = performance.now();
+    if (perfNow - this.lastTransitionTime < 450) return;
+    this.lastTransitionTime = perfNow;
+
+    this.initContext();
+    this.stopLaserBeamSingleStream(true);
+
+    if (this.ctx && this.transitionAudioBuffer && this.masterGain) {
+      if (this.ctx.state === 'suspended') {
+        this.ctx.resume().catch(() => {});
+      }
+      const now = this.ctx.currentTime;
+      const source = this.ctx.createBufferSource();
+      const gain = this.ctx.createGain();
+
+      source.buffer = this.transitionAudioBuffer;
+      gain.gain.setValueAtTime(Math.min(1, this.masterVolume * 0.95), now);
+
+      source.connect(gain);
+      gain.connect(this.masterGain);
+      source.start(0);
+    } else if (this.fallbackTransitionAudio) {
+      this.fallbackTransitionAudio.currentTime = 0;
+      this.fallbackTransitionAudio.volume = Math.min(1, this.masterVolume * 0.95);
+      this.fallbackTransitionAudio.play().catch(() => {});
+    }
   }
 }
 

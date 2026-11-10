@@ -79,6 +79,7 @@ export class GalactusCharacterRig {
         uEyeGlow: { value: 0.12 },
         uRimIntensity: { value: 1.15 },
         uDimming: { value: 1.0 },
+        uOpacity: { value: 1.0 },
         uLeftEyeUV: { value: this.leftEyeUV },
         uRightEyeUV: { value: this.rightEyeUV },
         uCosmicColorA: { value: new THREE.Color('#a855f7') }, // Purple
@@ -139,6 +140,7 @@ export class GalactusCharacterRig {
         uniform float uEyeGlow;
         uniform float uRimIntensity;
         uniform float uDimming;
+        uniform float uOpacity;
         uniform vec2 uLeftEyeUV;
         uniform vec2 uRightEyeUV;
         uniform vec3 uCosmicColorA;
@@ -155,7 +157,7 @@ export class GalactusCharacterRig {
           vec4 texColor = texture2D(uColorMap, vUv);
           vec4 maskData = texture2D(uDepthMaskMap, vUv);
 
-          float alpha = maskData.a;
+          float alpha = maskData.a * uOpacity;
           if (alpha < 0.02) discard;
 
           vec3 baseCol = texColor.rgb;
@@ -189,7 +191,7 @@ export class GalactusCharacterRig {
           // Smooth chin-to-neck blend
           float chinFade = smoothstep(0.35, 0.42, vUv.y);
 
-          vec3 finalColor = (baseCol + rimContribution) * uDimming + eyeContribution;
+          vec3 finalColor = ((baseCol + rimContribution) * uDimming + eyeContribution) * uOpacity;
           gl_FragColor = vec4(finalColor * chinFade, alpha * chinFade);
         }
       `,
@@ -213,6 +215,7 @@ export class GalactusCharacterRig {
         uTime: { value: 0 },
         uDepthStrength: { value: 0.68 },
         uDimming: { value: 1.0 },
+        uOpacity: { value: 1.0 },
         uRimIntensity: { value: 1.15 },
         uCosmicColorA: { value: new THREE.Color('#a855f7') },
         uCosmicColorB: { value: new THREE.Color('#ec4899') },
@@ -261,6 +264,7 @@ export class GalactusCharacterRig {
         uniform sampler2D uDepthMaskMap;
         uniform float uTime;
         uniform float uDimming;
+        uniform float uOpacity;
         uniform float uRimIntensity;
         uniform vec3 uCosmicColorA;
         uniform vec3 uCosmicColorB;
@@ -273,7 +277,7 @@ export class GalactusCharacterRig {
           vec4 texColor = texture2D(uColorMap, vUv);
           vec4 maskData = texture2D(uDepthMaskMap, vUv);
 
-          float alpha = maskData.a;
+          float alpha = maskData.a * uOpacity;
           if (alpha < 0.02) discard;
 
           vec3 baseCol = texColor.rgb;
@@ -290,7 +294,7 @@ export class GalactusCharacterRig {
           float bottomFade = smoothstep(0.01, 0.12, vUv.y);
 
           float netAlpha = alpha * collarFade * bottomFade;
-          vec3 finalColor = (baseCol + rimContribution) * uDimming;
+          vec3 finalColor = (baseCol + rimContribution) * uDimming * uOpacity;
           gl_FragColor = vec4(finalColor * bottomFade, netAlpha);
         }
       `,
@@ -773,20 +777,26 @@ export class GalactusCharacterRig {
     this.headPivotGroup.rotation.y = headYawWithPointer;
     this.headPivotGroup.rotation.x = pointerY * 0.04;
 
+    const opacity = state.galactusOpacity ?? 1.0;
+    this.group.visible = opacity > 0.005;
+    if (!this.group.visible) return;
+
     // 2. Update Head Shader Uniforms
     const hUniforms = this.headMesh.material.uniforms;
     hUniforms.uTime.value = elapsedTime;
     hUniforms.uDepthStrength.value = effectiveDepth;
-    hUniforms.uEyeGlow.value = state.eyeGlowIntensity * overrides.beamBrightness;
-    hUniforms.uRimIntensity.value = state.rimLightIntensity;
+    hUniforms.uEyeGlow.value = state.eyeGlowIntensity * overrides.beamBrightness * opacity;
+    hUniforms.uRimIntensity.value = state.rimLightIntensity * opacity;
     hUniforms.uDimming.value = state.characterDimming;
+    hUniforms.uOpacity.value = opacity;
 
     // 3. Update Torso Shader Uniforms
     const tUniforms = this.torsoMesh.material.uniforms;
     tUniforms.uTime.value = elapsedTime;
     tUniforms.uDepthStrength.value = effectiveDepth;
     tUniforms.uDimming.value = state.characterDimming;
-    tUniforms.uRimIntensity.value = state.rimLightIntensity;
+    tUniforms.uRimIntensity.value = state.rimLightIntensity * opacity;
+    tUniforms.uOpacity.value = opacity;
 
     this.headMesh.material.wireframe = overrides.showWireframeOverlay;
     this.torsoMesh.material.wireframe = overrides.showWireframeOverlay;
@@ -795,7 +805,7 @@ export class GalactusCharacterRig {
     const floatY = overrides.reducedMotion ? 0 : Math.sin(elapsedTime * 1.1) * 0.04;
     this.group.position.set(
       pointerX * 0.1,
-      0.35 + floatY + pointerY * 0.08,
+      0.35 + floatY + pointerY * 0.08 + (1.0 - opacity) * 1.25,
       state.galactusZ
     );
     this.group.scale.setScalar(state.galactusScale);

@@ -18,7 +18,6 @@ export default function App() {
   const headerRef = useRef<HTMLElement | null>(null);
   const audioToggleBtnRef = useRef<HTMLButtonElement | null>(null);
   const soundPromptRef = useRef<HTMLDivElement | null>(null);
-
   const [isPortfolioOverlayOpen, setIsPortfolioOverlayOpen] = useState(false);
   const [isAudioMuted, setIsAudioMuted] = useState<boolean>(
     () => cosmicAudio.getState().isMuted
@@ -186,11 +185,21 @@ export default function App() {
             href="#hero-experience"
             onClick={(e) => {
               e.preventDefault();
-              handleJumpToScene(6);
+              handleJumpToScene(1);
             }}
             className="hover:text-white hover:underline underline-offset-4 transition-colors whitespace-nowrap shrink-0"
           >
-            Intro Reveal
+            Home
+          </a>
+          <a
+            href="#about-section"
+            onClick={(e) => {
+              e.preventDefault();
+              handleJumpToScene(7);
+            }}
+            className="hover:text-white hover:underline underline-offset-4 transition-colors whitespace-nowrap shrink-0"
+          >
+            About
           </a>
           <a
             href="#works"
@@ -235,8 +244,8 @@ export default function App() {
         </nav>
       </header>
 
-      {/* Full-Screen Virtual-Scroll 6-Scene Cinematic 3D Experience */}
       <main className="w-full h-full">
+        {/* 100vh Full-Viewport 3D Hero Section Driven by Virtual Wheel/Touch Events */}
         <HeroSection
           onExploreWork={() => openSectionInOverlay('works')}
           onContactClick={() => openSectionInOverlay('contact')}

@@ -6,6 +6,7 @@ import { cosmicAudio } from '../utils/cosmicAudio';
 interface IntroductionTextProps {
   cinematicStateRef: React.MutableRefObject<CinematicState>;
   overridesRef: React.MutableRefObject<DirectorOverrides>;
+  onScrollToAbout: () => void;
   onExploreWork: () => void;
   onContactClick: () => void;
 }
@@ -17,6 +18,7 @@ const MAX_GLYPH_DASH = 360;
 export const IntroductionText: React.FC<IntroductionTextProps> = ({
   cinematicStateRef,
   overridesRef,
+  onScrollToAbout,
   onExploreWork,
   onContactClick,
 }) => {
@@ -46,11 +48,18 @@ export const IntroductionText: React.FC<IntroductionTextProps> = ({
       const introP = state.introRevealProgress;
       const subP = state.subtitleRevealProgress;
       const beamP = state.beamProgress;
+      const exitP = Math.max(0, Math.min(1, state.heroTextExitProgress || 0));
+      const exitAlpha = 1 - exitP;
 
       if (containerRef.current) {
-        const isVisible = beamP > 0.25 || introP > 0.002;
+        const isVisible = (beamP > 0.25 || introP > 0.002) && exitAlpha > 0.01;
         containerRef.current.style.visibility = isVisible ? 'visible' : 'hidden';
-        containerRef.current.style.pointerEvents = introP > 0.65 ? 'auto' : 'none';
+        containerRef.current.style.pointerEvents =
+          introP > 0.65 && exitP < 0.35 ? 'auto' : 'none';
+        containerRef.current.style.opacity = exitAlpha.toFixed(3);
+        const exitY = reducedMotion ? 0 : -exitP * 95;
+        const exitScale = reducedMotion ? 1 : 1 - exitP * 0.12;
+        containerRef.current.style.transform = `translate3d(0, ${exitY.toFixed(1)}px, 0) scale(${exitScale.toFixed(3)})`;
       }
 
       const totalChars = INTRO_CHARS.length;
@@ -321,8 +330,16 @@ export const IntroductionText: React.FC<IntroductionTextProps> = ({
       <div
         ref={ctaGroupRef}
         style={{ opacity: 0, willChange: 'transform, opacity' }}
-        className="mt-6 flex flex-wrap items-center justify-center gap-4"
+        className="mt-6 flex flex-wrap items-center justify-center gap-3.5"
       >
+        <button
+          type="button"
+          onClick={onScrollToAbout}
+          className="px-5 py-2.5 text-xs sm:text-sm font-semibold text-[#05020a] bg-[#00f2fe] hover:bg-[#5eead4] rounded-lg transition-colors inline-flex items-center gap-2 shadow-[0_0_24px_rgba(0,242,254,0.4)] cursor-pointer whitespace-nowrap shrink-0"
+        >
+          <span>Explore About Section</span>
+          <ArrowDownRight className="w-4 h-4" />
+        </button>
         <button
           type="button"
           onClick={onExploreWork}
