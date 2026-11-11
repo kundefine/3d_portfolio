@@ -15,7 +15,7 @@ interface ScrollAnimationControllerProps {
   onStageChange: (stage: SceneStage, progress: number) => void;
 }
 
-const VIRTUAL_SCROLL_DISTANCE = 7600;
+const VIRTUAL_SCROLL_DISTANCE = 3600;
 
 export const ScrollAnimationController: React.FC<ScrollAnimationControllerProps> = ({
   cinematicStateRef,
@@ -37,14 +37,14 @@ export const ScrollAnimationController: React.FC<ScrollAnimationControllerProps>
       if (p < 0.28) return 3;
       if (p < 0.42) return 4;
       if (p < 0.54) return 5;
-      if (p < 0.66) return 6;
+      if (p < 0.63) return 6;
       return 7;
     };
 
     // Paused 100-unit master GSAP timeline driven by virtual wheel/touch progress
-    // Screen 1 (0 -> 60): Galactus Hero Stage
-    // Spatial Transition (58 -> 72): Galactus dissolves in 3D space & 3D Obsidian Crystal Rocks emerge
-    // Screen 2 (68 -> 100): About Section 3D Crystal Rocks + 3D Text Slider
+    // Screen 1 (0 -> 57): Galactus Hero Stage
+    // Fast Spatial Transition (56 -> 66): Galactus dissolves in 3D space & 3D Obsidian Crystal Rocks emerge
+    // Screen 2 (66 -> 100): About Section 3D Crystal Rocks + 3D Text Slider
     const tl = gsap.timeline({ paused: true });
 
     // =========================================================================
@@ -127,7 +127,7 @@ export const ScrollAnimationController: React.FC<ScrollAnimationControllerProps>
     );
 
     // =========================================================================
-    // STAGE 4 & 5 (22 -> 52): Continuous Wireframe Outline Laser Tracing of
+    // STAGE 4 & 5 (22 -> 50): Continuous Wireframe Outline Laser Tracing of
     // "Hi, My name is Md Kajal Mia"
     // =========================================================================
     tl.to(
@@ -140,14 +140,14 @@ export const ScrollAnimationController: React.FC<ScrollAnimationControllerProps>
         cameraZ: 10.45,
         cameraLookY: -0.1,
         characterDimming: 0.88,
-        duration: 30,
+        duration: 28,
         ease: 'none',
       },
       22
     );
 
     // =========================================================================
-    // STAGE 6 (50 -> 59): Reveal Subtitle & Hold Final 3D Hero Composition
+    // STAGE 6 (48 -> 56): Reveal Subtitle & Hold Final 3D Hero Composition
     // =========================================================================
     tl.to(
       state,
@@ -157,19 +157,18 @@ export const ScrollAnimationController: React.FC<ScrollAnimationControllerProps>
         eyeGlowIntensity: 0.30,
         eyeFlareScale: 0.30,
         pedestalGlowIntensity: 0.72,
-        duration: 7,
+        duration: 6,
         ease: 'power2.out',
       },
-      50
+      48
     );
 
     // =========================================================================
-    // SCROLL-TRIGGERED 3D HOLOGRAPHIC TRANSITION (57 -> 74):
+    // FAST SCROLL-TRIGGERED 3D HOLOGRAPHIC TRANSITION (56 -> 66):
     // Screen 1 (Galactus) -> Screen 2 (About 3D Crystal Monolith) inside the
-    // exact same 3D space! Galactus undergoes a holographic laser scanline
-    // dissolve & voxel stream morph that materializes the 3D Obsidian Rock.
+    // exact same 3D space!
     // =========================================================================
-    // 1. Ramp up 3D Holographic Scan-Grid & Portal Gate Rings (57 -> 64)
+    // 1. Ramp up 3D Holographic Scan-Grid & Portal Gate Rings (56 -> 60)
     tl.to(
       state,
       {
@@ -181,13 +180,13 @@ export const ScrollAnimationController: React.FC<ScrollAnimationControllerProps>
         pedestalGlowIntensity: 0.0,
         laserTrailIntensity: 0.0,
         particleWarpSpeed: 2.35,
-        duration: 7,
+        duration: 4.5,
         ease: 'power2.inOut',
       },
-      57
+      56
     );
 
-    // 2. Sweep holographic dissolve across Galactus & stream 3D voxels to the Crystal Monolith (57 -> 70)
+    // 2. Sweep holographic dissolve across Galactus & stream 3D voxels to the Crystal Monolith (56 -> 64)
     tl.to(
       state,
       {
@@ -200,38 +199,38 @@ export const ScrollAnimationController: React.FC<ScrollAnimationControllerProps>
         cameraY: 0.05,
         cameraLookX: 0.15,
         cameraLookY: 0.02,
-        duration: 12,
+        duration: 7.5,
         ease: 'power2.inOut',
       },
-      58
+      56.5
     );
 
-    // 3. Materialize the 3D Obsidian & Crystal Monolith + Diagonal Micro-Shard Stream (62 -> 73)
+    // 3. Materialize the 3D Obsidian & Crystal Monolith + Diagonal Micro-Shard Stream (59 -> 66)
     tl.to(
       state,
       {
         aboutRevealProgress: 1.0,
         particleWarpSpeed: 0.32,
         rimLightIntensity: 1.35,
-        duration: 11,
+        duration: 7,
         ease: 'power3.out',
       },
-      62
+      59
     );
 
-    // 4. Smoothly resolve the 3D Holographic Scan-Grid once the About Section is materialized (66 -> 74)
+    // 4. Smoothly resolve the 3D Holographic Scan-Grid once the About Section is materialized (62 -> 66)
     tl.to(
       state,
       {
         holoTransitionProgress: 0.0,
-        duration: 8,
+        duration: 4.5,
         ease: 'power2.out',
       },
-      66
+      62
     );
 
     // =========================================================================
-    // STAGE 7 (73 -> 100): Screen 2 — About Section 3D Chapter Slider & Rock Orbit
+    // STAGE 7 (66 -> 100): Screen 2 — About Section 3D Chapter Slider & Rock Orbit
     // Scrolling smoothly advances through the 3 chapters of Md. Kajal Mia's story
     // while rotating the 3D Obsidian Crystal Monolith.
     // =========================================================================
@@ -241,10 +240,10 @@ export const ScrollAnimationController: React.FC<ScrollAnimationControllerProps>
         aboutChapterProgress: 2.0,
         cameraZ: 9.85,
         cameraLookX: 0.22,
-        duration: 27,
+        duration: 34,
         ease: 'none',
       },
-      73
+      66
     );
 
     // Virtual scroll state (0.0 -> 1.0)
@@ -272,7 +271,7 @@ export const ScrollAnimationController: React.FC<ScrollAnimationControllerProps>
       e.preventDefault();
       // Normalize wheel delta across mouse wheels and trackpads
       const rawDelta =
-        e.deltaMode === 1 ? e.deltaY * 32 : e.deltaMode === 2 ? e.deltaY * 320 : e.deltaY;
+        e.deltaMode === 1 ? e.deltaY * 36 : e.deltaMode === 2 ? e.deltaY * 360 : e.deltaY;
 
       targetProgress = Math.max(
         0,
@@ -295,7 +294,7 @@ export const ScrollAnimationController: React.FC<ScrollAnimationControllerProps>
       }
       if (e.touches.length === 0) return;
       const currentY = e.touches[0].clientY;
-      const deltaY = (touchStartY - currentY) * 2.2;
+      const deltaY = (touchStartY - currentY) * 3.0;
       touchStartY = currentY;
 
       targetProgress = Math.max(
@@ -313,11 +312,11 @@ export const ScrollAnimationController: React.FC<ScrollAnimationControllerProps>
       }
       if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ') {
         e.preventDefault();
-        const step = e.key === 'ArrowDown' ? 0.04 : 0.12;
+        const step = e.key === 'ArrowDown' ? 0.065 : 0.16;
         targetProgress = Math.max(0, Math.min(1, targetProgress + step));
       } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
         e.preventDefault();
-        const step = e.key === 'ArrowUp' ? 0.04 : 0.12;
+        const step = e.key === 'ArrowUp' ? 0.065 : 0.16;
         targetProgress = Math.max(0, Math.min(1, targetProgress - step));
       } else if (e.key === 'Home') {
         e.preventDefault();
@@ -338,14 +337,14 @@ export const ScrollAnimationController: React.FC<ScrollAnimationControllerProps>
           targetProgress = 0;
           smoothedProgress = 0;
         } else {
-          targetProgress = Math.min(1, targetProgress + dt * 0.055);
+          targetProgress = Math.min(1, targetProgress + dt * 0.075);
         }
       }
 
-      // Smoothly damp smoothedProgress toward targetProgress
+      // Snappy damping toward targetProgress so slide changes on scroll feel immediate
       const lerpFactor = overridesRef.current.reducedMotion
         ? 1.0
-        : 1.0 - Math.exp(-8.5 * dt);
+        : 1.0 - Math.exp(-15.0 * dt);
       smoothedProgress += (targetProgress - smoothedProgress) * lerpFactor;
 
       if (Math.abs(targetProgress - smoothedProgress) < 0.00005) {
@@ -353,7 +352,7 @@ export const ScrollAnimationController: React.FC<ScrollAnimationControllerProps>
       }
 
       // Play spatial transition sound when crossing between Screen 1 (Hero) and Screen 2 (About)
-      const isInAboutZone = smoothedProgress >= 0.62;
+      const isInAboutZone = smoothedProgress >= 0.59;
       if (isInAboutZone !== wasInAboutZone) {
         wasInAboutZone = isInAboutZone;
         cosmicAudio.playHomeTransitionSound();

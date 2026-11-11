@@ -493,6 +493,106 @@ class CosmicAudioEngine {
       this.fallbackTransitionAudio.play().catch(() => {});
     }
   }
+
+  /**
+   * Plays a futuristic holographic slide swoosh + zigzag/ripple harmonic pulse
+   * whenever transitioning from one slide to another (on scroll, button click, or slider scrub).
+   */
+  public playSlideTransitionSound(direction = 1) {
+    if (this.isMuted) return;
+
+    const perfNow = performance.now();
+    if (perfNow - this.lastStageChimeTime < 140) return;
+    this.lastStageChimeTime = perfNow;
+
+    this.initContext();
+    if (!this.ctx || !this.masterGain) return;
+
+    if (this.ctx.state === 'suspended') {
+      this.ctx.resume().catch(() => {});
+    }
+
+    const now = this.ctx.currentTime;
+
+    // 1. Pitch-shifted holographic slice from home-transition.wav (if decoded)
+    if (this.transitionAudioBuffer) {
+      const sliceSource = this.ctx.createBufferSource();
+      const sliceGain = this.ctx.createGain();
+      sliceSource.buffer = this.transitionAudioBuffer;
+      sliceSource.playbackRate.setValueAtTime(direction >= 0 ? 1.55 : 1.32, now);
+
+      sliceGain.gain.setValueAtTime(0.0001, now);
+      sliceGain.gain.linearRampToValueAtTime(
+        Math.min(0.42, this.masterVolume * 0.45),
+        now + 0.025
+      );
+      sliceGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.34);
+
+      sliceSource.connect(sliceGain);
+      sliceGain.connect(this.masterGain);
+      sliceSource.start(now, 0.05, 0.36);
+    }
+
+    // 2. Synthesized Bandpass Filter Swoosh (Airy Hologram Slide)
+    const bufferSize = Math.floor(this.ctx.sampleRate * 0.26);
+    const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const output = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      output[i] = Math.random() * 2 - 1;
+    }
+
+    const whiteNoise = this.ctx.createBufferSource();
+    whiteNoise.buffer = noiseBuffer;
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.Q.setValueAtTime(3.2, now);
+    filter.frequency.setValueAtTime(direction >= 0 ? 420 : 2200, now);
+    filter.frequency.exponentialRampToValueAtTime(
+      direction >= 0 ? 2450 : 480,
+      now + 0.16
+    );
+    filter.frequency.exponentialRampToValueAtTime(820, now + 0.25);
+
+    const noiseGain = this.ctx.createGain();
+    noiseGain.gain.setValueAtTime(0.0001, now);
+    noiseGain.gain.linearRampToValueAtTime(0.14, now + 0.04);
+    noiseGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.25);
+
+    whiteNoise.connect(filter);
+    filter.connect(noiseGain);
+    noiseGain.connect(this.masterGain);
+    whiteNoise.start(now);
+    whiteNoise.stop(now + 0.26);
+
+    // 3. Zigzag & Ripple 4-Step Crystalline Frequency Contour
+    const notes =
+      direction >= 0
+        ? [660, 1080, 820, 1440]
+        : [1440, 820, 1080, 660];
+
+    const osc = this.ctx.createOscillator();
+    const chimeGain = this.ctx.createGain();
+    osc.type = 'triangle';
+
+    notes.forEach((freq, idx) => {
+      const stepTime = now + idx * 0.048;
+      if (idx === 0) {
+        osc.frequency.setValueAtTime(freq, stepTime);
+      } else {
+        osc.frequency.exponentialRampToValueAtTime(freq, stepTime);
+      }
+    });
+
+    chimeGain.gain.setValueAtTime(0.0001, now);
+    chimeGain.gain.linearRampToValueAtTime(0.075, now + 0.015);
+    chimeGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.24);
+
+    osc.connect(chimeGain);
+    chimeGain.connect(this.masterGain);
+    osc.start(now);
+    osc.stop(now + 0.25);
+  }
 }
 
 export const cosmicAudio = new CosmicAudioEngine();

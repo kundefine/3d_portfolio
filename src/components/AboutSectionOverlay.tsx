@@ -54,7 +54,7 @@ const ABOUT_SLIDES: AboutSlideItem[] = [
       'Efficient APIs',
     ],
     accentHex: '#2dd4bf', // Teal crystal accent
-    scrollRatio: 0.74,
+    scrollRatio: 0.68,
     rockYawDeg: -12,
   },
   {
@@ -77,7 +77,7 @@ const ABOUT_SLIDES: AboutSlideItem[] = [
       'Performance Optimization',
     ],
     accentHex: '#c084fc', // Amethyst crystal accent
-    scrollRatio: 0.87,
+    scrollRatio: 0.83,
     rockYawDeg: 32,
   },
   {
@@ -116,10 +116,12 @@ export const AboutSectionOverlay: React.FC<AboutSectionOverlayProps> = ({
   const bottomMetaRef = useRef<HTMLDivElement | null>(null);
   const holoScanBarRef = useRef<HTMLDivElement | null>(null);
 
-  // Refs for GSAP slider transition animations
+  // Refs for GSAP slider transition animations (Zigzag + Concentric Ripple + 3D Tilt)
   const headlineWrapperRef = useRef<HTMLHeadingElement | null>(null);
   const cardPlaneRef = useRef<HTMLDivElement | null>(null);
   const cardShimmerRef = useRef<HTMLDivElement | null>(null);
+  const rippleContainerRef = useRef<HTMLDivElement | null>(null);
+  const zigzagSvgRef = useRef<SVGSVGElement | null>(null);
   const paragraphTextRef = useRef<HTMLParagraphElement | null>(null);
   const domainTagsRef = useRef<HTMLDivElement | null>(null);
 
@@ -130,78 +132,128 @@ export const AboutSectionOverlay: React.FC<AboutSectionOverlayProps> = ({
 
   const lastSyncedSlideRef = useRef<number>(0);
   const slideDirRef = useRef<number>(1);
+  const isFirstRenderRef = useRef<boolean>(true);
 
-  // Run a 3D GSAP perspective card & text animation whenever activeSlideIdx changes
+  // Run Slide Sound + 3D Zigzag & Concentric Ripple Animation whenever activeSlideIdx changes
   useEffect(() => {
-    if (showAllParagraphs || overridesRef.current.reducedMotion) return;
+    if (isFirstRenderRef.current) {
+      isFirstRenderRef.current = false;
+      return;
+    }
 
     const dir = slideDirRef.current;
+
+    // Play the holographic slide swoosh + zigzag/ripple chime whenever switching slides
+    if ((cinematicStateRef.current.aboutRevealProgress || 0) > 0.25) {
+      cosmicAudio.playSlideTransitionSound(dir);
+    }
+
+    if (showAllParagraphs || overridesRef.current.reducedMotion) return;
+
     const ctx = gsap.context(() => {
-      // 1. 3D perspective flip & scale on the headline lines
+      // 1. Electric Zigzag + 3D perspective flip on the headline lines
       if (headlineWrapperRef.current) {
         const lines = headlineWrapperRef.current.querySelectorAll('[data-headline-line]');
         gsap.fromTo(
           lines,
           {
             opacity: 0,
-            y: 16 * dir,
-            rotateX: -38 * dir,
-            filter: 'blur(4px)',
+            y: 12 * dir,
+            rotateX: -32 * dir,
+            filter: 'blur(3px)',
           },
           {
-            opacity: 1,
-            y: 0,
-            rotateX: 0,
-            filter: 'blur(0px)',
-            duration: 0.55,
-            stagger: 0.07,
-            ease: 'power3.out',
-            clearProps: 'filter',
+             keyframes: [
+              { opacity: 0.65, x: 16 * dir, skewX: 9 * dir, y: 6 * dir, rotateX: -14 * dir, duration: 0.08 },
+              { opacity: 0.9, x: -11 * dir, skewX: -6 * dir, y: -3 * dir, rotateX: 6 * dir, duration: 0.08 },
+              { opacity: 1, x: 5 * dir, skewX: 3 * dir, y: 0, rotateX: 0, duration: 0.07 },
+              { opacity: 1, x: 0, skewX: 0, y: 0, rotateX: 0, filter: 'blur(0px)', duration: 0.09 },
+            ],
+            stagger: 0.035,
+            ease: 'power2.out',
+            clearProps: 'filter,transform',
           }
         );
       }
 
-      // 2. 3D perspective card glide & tilt
+      // 2. 3D Card Zigzag Oscillation & Ripple Bounce
       if (cardPlaneRef.current) {
         gsap.fromTo(
           cardPlaneRef.current,
           {
-            rotateY: dir * 14,
+            rotateY: dir * 12,
             rotateX: -dir * 5,
-            scale: 0.96,
-            y: 12 * dir,
+            scale: 0.95,
           },
           {
-            rotateY: 0,
-            rotateX: 0,
-            scale: 1,
-            y: 0,
-            duration: 0.62,
-            ease: 'back.out(1.4)',
-          }
-        );
-      }
-
-      // 3. Holographic shimmer sweep across the card
-      if (cardShimmerRef.current) {
-        gsap.fromTo(
-          cardShimmerRef.current,
-          { xPercent: -120, opacity: 0.9 },
-          {
-            xPercent: 220,
-            opacity: 0,
-            duration: 0.75,
+            keyframes: [
+              { x: -12 * dir, y: 6 * dir, rotateY: dir * 7, scale: 1.015, duration: 0.08 },
+              { x: 9 * dir, y: -4 * dir, rotateY: -dir * 4, scale: 0.99, duration: 0.08 },
+              { x: -4 * dir, y: 2 * dir, rotateY: dir * 2, scale: 1.005, duration: 0.07 },
+              { x: 0, y: 0, rotateY: 0, rotateX: 0, scale: 1, duration: 0.1 },
+            ],
             ease: 'power2.out',
           }
         );
       }
 
-      // 4. Paragraph & domain tags crisp reveal
+      // 3. Concentric Holographic Ripple Shockwave Rings expanding across the card
+      if (rippleContainerRef.current) {
+        const rings = rippleContainerRef.current.querySelectorAll('[data-ripple-ring]');
+        gsap.fromTo(
+          rings,
+          { scale: 0.08, opacity: 0.9 },
+          {
+            scale: 2.45,
+            opacity: 0,
+            duration: 0.58,
+            stagger: 0.075,
+            ease: 'power2.out',
+          }
+        );
+      }
+
+      // 4. Electric Zigzag Neon Laser Trace sweeping across the card
+      if (zigzagSvgRef.current) {
+        const poly = zigzagSvgRef.current.querySelector('[data-zigzag-line]');
+        gsap.fromTo(
+          zigzagSvgRef.current,
+          { opacity: 0.95 },
+          { opacity: 0, duration: 0.48, ease: 'power2.out' }
+        );
+        if (poly) {
+          gsap.fromTo(
+            poly,
+            { strokeDashoffset: dir > 0 ? 640 : -640 },
+            {
+              strokeDashoffset: 0,
+              duration: 0.36,
+              ease: 'power3.out',
+            }
+          );
+        }
+      }
+
+      // 5. Fast holographic shimmer sweep across the card
+      if (cardShimmerRef.current) {
+        gsap.fromTo(
+          cardShimmerRef.current,
+          { xPercent: -120, opacity: 0.85 },
+          {
+            xPercent: 220,
+            opacity: 0,
+            duration: 0.42,
+            ease: 'power2.out',
+          }
+        );
+      }
+
+      // 6. Paragraph & domain tags crisp reveal
       if (paragraphTextRef.current) {
         gsap.fromTo(
           paragraphTextRef.current,
-          { opacity: 0.25, y: 8 },
-          { opacity: 1, y: 0, duration: 0.45, ease: 'power2.out' }
+          { opacity: 0.3, y: 6 },
+          { opacity: 1, y: 0, duration: 0.24, ease: 'power2.out' }
         );
       }
 
@@ -209,12 +261,13 @@ export const AboutSectionOverlay: React.FC<AboutSectionOverlayProps> = ({
         const tags = domainTagsRef.current.querySelectorAll('[data-domain-tag]');
         gsap.fromTo(
           tags,
-          { opacity: 0, y: 6 },
+          { opacity: 0, y: 5, x: 6 * dir },
           {
             opacity: 1,
             y: 0,
-            duration: 0.38,
-            stagger: 0.04,
+            x: 0,
+            duration: 0.22,
+            stagger: 0.025,
             ease: 'power2.out',
           }
         );
@@ -222,7 +275,7 @@ export const AboutSectionOverlay: React.FC<AboutSectionOverlayProps> = ({
     });
 
     return () => ctx.revert();
-  }, [activeSlideIdx, showAllParagraphs, overridesRef]);
+  }, [activeSlideIdx, showAllParagraphs, overridesRef, cinematicStateRef]);
 
   useEffect(() => {
     let rafId = 0;
@@ -293,7 +346,11 @@ export const AboutSectionOverlay: React.FC<AboutSectionOverlayProps> = ({
 
   const handleSelectSlide = (idx: number) => {
     const clamped = Math.max(0, Math.min(ABOUT_SLIDES.length - 1, idx));
-    slideDirRef.current = clamped >= activeSlideIdx ? 1 : -1;
+    const dir = clamped >= activeSlideIdx ? 1 : -1;
+    slideDirRef.current = dir;
+    if (clamped === activeSlideIdx) {
+      cosmicAudio.playSlideTransitionSound(dir);
+    }
     setActiveSlideIdx(clamped);
     lastSyncedSlideRef.current = clamped;
 
@@ -301,13 +358,12 @@ export const AboutSectionOverlay: React.FC<AboutSectionOverlayProps> = ({
     setRockAngleDeg(targetSlide.rockYawDeg);
     gsap.to(cinematicStateRef.current, {
       aboutRockUserYaw: (targetSlide.rockYawDeg * Math.PI) / 180,
-      duration: 0.65,
+      duration: 0.45,
       ease: 'power3.out',
     });
 
     // Smoothly scrub the 3D scroll timeline to that slide's position in 3D space
     onSeekToProgress(targetSlide.scrollRatio);
-    cosmicAudio.playClickSound();
   };
 
   const handleRockSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -332,7 +388,6 @@ export const AboutSectionOverlay: React.FC<AboutSectionOverlayProps> = ({
       slideDirRef.current = mappedSlide > activeSlideIdx ? 1 : -1;
       lastSyncedSlideRef.current = mappedSlide;
       setActiveSlideIdx(mappedSlide);
-      cosmicAudio.playHoverSound();
     }
   };
 
@@ -397,8 +452,8 @@ export const AboutSectionOverlay: React.FC<AboutSectionOverlayProps> = ({
         {/* Interactive 3D Rock Spin Hint & Back to Galactus Stage Button */}
         <div className="flex items-center gap-2.5">
           <div className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white/[0.04] border border-white/10 text-[11px] font-mono text-[#cbd5e1]">
-            <Move3d className="w-3.5 h-3.5 text-[#2dd4bf]" />
-            <span>Drag 3D Crystal Rock to Spin</span>
+            <Move3d className="w-3.5 h-3.5 text-[#00f2fe]" />
+            <span>Drag 3D Iron Man Hologram to Spin</span>
           </div>
 
           <button
@@ -457,9 +512,54 @@ export const AboutSectionOverlay: React.FC<AboutSectionOverlayProps> = ({
                 className="pointer-events-none absolute inset-y-0 -left-1/3 w-1/2 -skew-x-12 bg-gradient-to-r from-transparent via-[#00f2fe]/25 to-transparent"
               />
 
+              {/* Concentric Holographic Ripple Shockwave Rings on Slide Transition */}
+              <div
+                ref={rippleContainerRef}
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden"
+              >
+                {[0, 1, 2].map((rIdx) => (
+                  <span
+                    key={rIdx}
+                    data-ripple-ring="true"
+                    style={{
+                      opacity: 0,
+                      borderColor: activeSlide.accentHex,
+                      boxShadow: `0 0 22px ${activeSlide.accentHex}66`,
+                    }}
+                    className="absolute w-36 h-36 rounded-full border-2"
+                  />
+                ))}
+              </div>
+
+              {/* Electric Zigzag Neon Laser Trace on Slide Transition */}
+              <svg
+                ref={zigzagSvgRef}
+                aria-hidden="true"
+                viewBox="0 0 560 180"
+                preserveAspectRatio="none"
+                style={{ opacity: 0 }}
+                className="pointer-events-none absolute inset-0 w-full h-full"
+              >
+                <polyline
+                  data-zigzag-line="true"
+                  fill="none"
+                  stroke={activeSlide.accentHex}
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeDasharray="640"
+                  strokeDashoffset="640"
+                  points="0,95 65,32 130,145 205,28 280,152 355,36 430,142 500,45 560,92"
+                  style={{
+                    filter: `drop-shadow(0 0 8px ${activeSlide.accentHex})`,
+                  }}
+                />
+              </svg>
+
               <p
                 ref={paragraphTextRef}
-                className="text-xs sm:text-sm md:text-[15px] text-[#e2e8f0] leading-relaxed font-normal"
+                className="relative z-10 text-xs sm:text-sm md:text-[15px] text-[#e2e8f0] leading-relaxed font-normal"
               >
                 {activeSlide.bodyParagraph}
               </p>
