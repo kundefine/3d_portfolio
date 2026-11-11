@@ -54,7 +54,7 @@ const ABOUT_SLIDES: AboutSlideItem[] = [
       'Efficient APIs',
     ],
     accentHex: '#2dd4bf', // Teal crystal accent
-    scrollRatio: 0.68,
+    scrollRatio: 0.53,
     rockYawDeg: -12,
   },
   {
@@ -77,7 +77,7 @@ const ABOUT_SLIDES: AboutSlideItem[] = [
       'Performance Optimization',
     ],
     accentHex: '#c084fc', // Amethyst crystal accent
-    scrollRatio: 0.83,
+    scrollRatio: 0.62,
     rockYawDeg: 32,
   },
   {
@@ -99,7 +99,7 @@ const ABOUT_SLIDES: AboutSlideItem[] = [
       'System-Level Engineering',
     ],
     accentHex: '#00f2fe', // Cyan-teal accent
-    scrollRatio: 0.98,
+    scrollRatio: 0.71,
     rockYawDeg: 76,
   },
 ];
@@ -285,12 +285,23 @@ export const AboutSectionOverlay: React.FC<AboutSectionOverlayProps> = ({
       const reducedMotion = overridesRef.current.reducedMotion;
       const reveal = Math.max(0, Math.min(1, state.aboutRevealProgress || 0));
       const holoP = Math.max(0, Math.min(1, state.holoTransitionProgress || 0));
+      const realityWipe = Math.max(0, Math.min(1, state.skillsRevealProgress || 0));
 
       if (rootRef.current) {
-        const isVisible = reveal > 0.01 || holoP > 0.02;
+        const isVisible = (reveal > 0.01 || holoP > 0.02) && realityWipe < 0.99;
         rootRef.current.style.visibility = isVisible ? 'visible' : 'hidden';
-        rootRef.current.style.pointerEvents = reveal > 0.45 ? 'auto' : 'none';
-        rootRef.current.style.opacity = reveal.toFixed(3);
+        rootRef.current.style.pointerEvents =
+          reveal > 0.45 && realityWipe < 0.25 ? 'auto' : 'none';
+        rootRef.current.style.opacity = (reveal * (1 - Math.pow(realityWipe, 2.2))).toFixed(3);
+
+        // Synchronize #about HTML overlay with the Reality Stone procedural horizontal wipe!
+        // As the red energy wave sweeps from left (0%) to right (100%), clip the left side of #about
+        if (realityWipe > 0.005) {
+          const clipLeftPct = Math.min(100, Math.max(0, (realityWipe * 1.18 - 0.06) * 100));
+          rootRef.current.style.clipPath = `inset(0px 0px 0px ${clipLeftPct.toFixed(1)}%)`;
+        } else {
+          rootRef.current.style.clipPath = 'none';
+        }
       }
 
       if (holoScanBarRef.current) {
@@ -308,12 +319,21 @@ export const AboutSectionOverlay: React.FC<AboutSectionOverlayProps> = ({
         leftColumnRef.current.style.transform = `perspective(1200px) translate3d(0, ${translateY.toFixed(
           1
         )}px, ${translateZ.toFixed(1)}px) rotateY(${rotY.toFixed(2)}deg)`;
-        leftColumnRef.current.style.filter =
-          !reducedMotion && holoP > 0.05
-            ? `drop-shadow(0 0 ${(holoP * 16).toFixed(1)}px rgba(0, 242, 254, ${(
-                holoP * 0.5
-              ).toFixed(2)}))`
-            : 'none';
+
+        if (!reducedMotion && realityWipe > 0.01 && realityWipe < 0.98) {
+          const seamGlow = Math.sin(realityWipe * Math.PI);
+          leftColumnRef.current.style.filter = `drop-shadow(${(seamGlow * 14).toFixed(
+            1
+          )}px 0 ${(seamGlow * 22).toFixed(1)}px rgba(255, 38, 12, ${(
+            seamGlow * 0.85
+          ).toFixed(2)}))`;
+        } else if (!reducedMotion && holoP > 0.05) {
+          leftColumnRef.current.style.filter = `drop-shadow(0 0 ${(holoP * 16).toFixed(
+            1
+          )}px rgba(0, 242, 254, ${(holoP * 0.5).toFixed(2)}))`;
+        } else {
+          leftColumnRef.current.style.filter = 'none';
+        }
       }
 
       if (bottomMetaRef.current) {
@@ -458,12 +478,22 @@ export const AboutSectionOverlay: React.FC<AboutSectionOverlayProps> = ({
 
           <button
             type="button"
-            onClick={() => onSeekToProgress(0.56)}
+            onClick={() => onSeekToProgress(0.41)}
             className="px-3 py-1 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] border border-white/15 text-xs font-medium text-white transition-colors inline-flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0"
             title="Scroll up or click to glide back to Galactus in 3D space"
           >
             <ArrowLeft className="w-3.5 h-3.5 text-[#2dd4bf]" />
             <span>Scroll Up · Galactus Hero</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onSeekToProgress(0.88)}
+            className="px-3 py-1 rounded-lg bg-[#ef4444]/15 hover:bg-[#ef4444]/25 border border-[#ef4444]/40 text-xs font-medium text-white transition-colors inline-flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0"
+            title="Scroll down or click to transition to MY SKILLS (3D Thanos Throne)"
+          >
+            <span>Next · MY SKILLS</span>
+            <ArrowRight className="w-3.5 h-3.5 text-[#f87171]" />
           </button>
         </div>
       </div>

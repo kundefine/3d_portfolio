@@ -32,23 +32,26 @@ export const ScrollAnimationController: React.FC<ScrollAnimationControllerProps>
     let wasInAboutZone = false;
 
     const computeStageFromProgress = (p: number): SceneStage => {
-      if (p < 0.09) return 1;
-      if (p < 0.20) return 2;
-      if (p < 0.28) return 3;
-      if (p < 0.42) return 4;
-      if (p < 0.54) return 5;
-      if (p < 0.63) return 6;
-      return 7;
+      if (p < 0.08) return 1;
+      if (p < 0.16) return 2;
+      if (p < 0.23) return 3;
+      if (p < 0.33) return 4;
+      if (p < 0.41) return 5;
+      if (p < 0.48) return 6;
+      if (p < 0.78) return 7;
+      return 8;
     };
 
     // Paused 100-unit master GSAP timeline driven by virtual wheel/touch progress
-    // Screen 1 (0 -> 57): Galactus Hero Stage
-    // Fast Spatial Transition (56 -> 66): Galactus dissolves in 3D space & 3D Obsidian Crystal Rocks emerge
-    // Screen 2 (66 -> 100): About Section 3D Crystal Rocks + 3D Text Slider
+    // Screen 1 (0 -> 45): Galactus Hero Stage
+    // Transition 1 (44 -> 51): Galactus dissolves in 3D space & 3D Iron Man Blue Neon Hologram emerges
+    // Screen 2 (51 -> 74): About Section 3D Iron Man Hologram + 3D Text Slider
+    // Transition 2 (74 -> 82): Reality Stone Crimson Wave (about_to_skills_animation.mp4)
+    // Screen 3 (82 -> 100): MY SKILLS Section (3D Galaxy + 3D Hovering Thanos Chair Throne)
     const tl = gsap.timeline({ paused: true });
 
     // =========================================================================
-    // STAGE 1 & 2 (0 -> 17): Galactus stands comfortably back in deep space.
+    // STAGE 1 & 2 (0 -> 14): Galactus stands comfortably back in deep space.
     // Only his HEAD rotates from facing toward the right (+0.78 rad) to facing
     // directly front (0.0 rad) on scroll, while the body and shoulders stay still.
     // =========================================================================
@@ -75,6 +78,8 @@ export const ScrollAnimationController: React.FC<ScrollAnimationControllerProps>
         galactusHoloDissolve: 0.0,
         aboutRevealProgress: 0.0,
         aboutChapterProgress: 0.0,
+        skillsTransitionProgress: 0.0,
+        skillsRevealProgress: 0.0,
       },
       {
         galactusYaw: 0.0, // Head smoothly turns to face directly forward
@@ -91,14 +96,14 @@ export const ScrollAnimationController: React.FC<ScrollAnimationControllerProps>
         atmosphereIntensity: 0.55,
         particleWarpSpeed: 0.4,
         eyeGlowIntensity: 0.24,
-        duration: 17,
+        duration: 14,
         ease: 'power2.inOut',
       },
       0
     );
 
     // =========================================================================
-    // STAGE 3 (15 -> 24): Comfortable Eye Glow & Multicolor Line Laser Barrage
+    // STAGE 3 (12 -> 19): Comfortable Eye Glow & Multicolor Line Laser Barrage
     // =========================================================================
     tl.to(
       state,
@@ -106,10 +111,10 @@ export const ScrollAnimationController: React.FC<ScrollAnimationControllerProps>
         eyeGlowIntensity: 0.42,
         eyeFlareScale: 0.45,
         rimLightIntensity: 1.65,
-        duration: 7,
+        duration: 5.5,
         ease: 'power2.in',
       },
-      15
+      12
     );
 
     tl.to(
@@ -120,14 +125,14 @@ export const ScrollAnimationController: React.FC<ScrollAnimationControllerProps>
         beamWidth: 0.95,
         laserSpread: 0.35,
         pedestalGlowIntensity: 0.42,
-        duration: 7,
+        duration: 5.5,
         ease: 'power2.out',
       },
-      17
+      13.5
     );
 
     // =========================================================================
-    // STAGE 4 & 5 (22 -> 50): Continuous Wireframe Outline Laser Tracing of
+    // STAGE 4 & 5 (18 -> 39): Continuous Wireframe Outline Laser Tracing of
     // "Hi, My name is Md Kajal Mia"
     // =========================================================================
     tl.to(
@@ -140,14 +145,14 @@ export const ScrollAnimationController: React.FC<ScrollAnimationControllerProps>
         cameraZ: 10.45,
         cameraLookY: -0.1,
         characterDimming: 0.88,
-        duration: 28,
+        duration: 21,
         ease: 'none',
       },
-      22
+      18
     );
 
     // =========================================================================
-    // STAGE 6 (48 -> 56): Reveal Subtitle & Hold Final 3D Hero Composition
+    // STAGE 6 (38 -> 44): Reveal Subtitle & Hold Final 3D Hero Composition
     // =========================================================================
     tl.to(
       state,
@@ -157,18 +162,15 @@ export const ScrollAnimationController: React.FC<ScrollAnimationControllerProps>
         eyeGlowIntensity: 0.30,
         eyeFlareScale: 0.30,
         pedestalGlowIntensity: 0.72,
-        duration: 6,
+        duration: 5,
         ease: 'power2.out',
       },
-      48
+      38
     );
 
     // =========================================================================
-    // FAST SCROLL-TRIGGERED 3D HOLOGRAPHIC TRANSITION (56 -> 66):
-    // Screen 1 (Galactus) -> Screen 2 (About 3D Crystal Monolith) inside the
-    // exact same 3D space!
+    // TRANSITION 1 (44 -> 51): Hero (Galactus) -> About (3D Iron Man Hologram)
     // =========================================================================
-    // 1. Ramp up 3D Holographic Scan-Grid & Portal Gate Rings (56 -> 60)
     tl.to(
       state,
       {
@@ -180,13 +182,12 @@ export const ScrollAnimationController: React.FC<ScrollAnimationControllerProps>
         pedestalGlowIntensity: 0.0,
         laserTrailIntensity: 0.0,
         particleWarpSpeed: 2.35,
-        duration: 4.5,
+        duration: 3.5,
         ease: 'power2.inOut',
       },
-      56
+      44
     );
 
-    // 2. Sweep holographic dissolve across Galactus & stream 3D voxels to the Crystal Monolith (56 -> 64)
     tl.to(
       state,
       {
@@ -199,40 +200,36 @@ export const ScrollAnimationController: React.FC<ScrollAnimationControllerProps>
         cameraY: 0.05,
         cameraLookX: 0.15,
         cameraLookY: 0.02,
-        duration: 7.5,
+        duration: 6,
         ease: 'power2.inOut',
       },
-      56.5
+      44.5
     );
 
-    // 3. Materialize the 3D Obsidian & Crystal Monolith + Diagonal Micro-Shard Stream (59 -> 66)
     tl.to(
       state,
       {
         aboutRevealProgress: 1.0,
         particleWarpSpeed: 0.32,
         rimLightIntensity: 1.35,
-        duration: 7,
+        duration: 5.5,
         ease: 'power3.out',
       },
-      59
+      46
     );
 
-    // 4. Smoothly resolve the 3D Holographic Scan-Grid once the About Section is materialized (62 -> 66)
     tl.to(
       state,
       {
         holoTransitionProgress: 0.0,
-        duration: 4.5,
+        duration: 3.5,
         ease: 'power2.out',
       },
-      62
+      48
     );
 
     // =========================================================================
-    // STAGE 7 (66 -> 100): Screen 2 — About Section 3D Chapter Slider & Rock Orbit
-    // Scrolling smoothly advances through the 3 chapters of Md. Kajal Mia's story
-    // while rotating the 3D Obsidian Crystal Monolith.
+    // STAGE 7 (51 -> 74): Screen 2 — About Section 3D Iron Man Blue Neon Hologram
     // =========================================================================
     tl.to(
       state,
@@ -240,10 +237,56 @@ export const ScrollAnimationController: React.FC<ScrollAnimationControllerProps>
         aboutChapterProgress: 2.0,
         cameraZ: 9.85,
         cameraLookX: 0.22,
-        duration: 34,
+        duration: 23,
         ease: 'none',
       },
-      66
+      51
+    );
+
+    // =========================================================================
+    // TRANSITION 2 (73 -> 85): About (Scene A) -> MY SKILLS (Scene B)
+    // Driven by the Dual-RenderTarget Reality Stone Procedural GLSL Wipe Shader!
+    // =========================================================================
+    tl.to(
+      state,
+      {
+        skillsTransitionProgress: 1.0,
+        skillsRevealProgress: 1.0,
+        cameraZ: 10.05,
+        cameraY: 0.06,
+        cameraLookX: 0.0,
+        cameraLookY: 0.04,
+        particleWarpSpeed: 1.45,
+        duration: 12,
+        ease: 'none',
+      },
+      73
+    );
+
+    tl.to(
+      state,
+      {
+        aboutRevealProgress: 0.0,
+        particleWarpSpeed: 0.28,
+        duration: 1.5,
+        ease: 'power2.out',
+      },
+      84.5
+    );
+
+    // =========================================================================
+    // STAGE 8 (82 -> 100): Screen 3 — MY SKILLS Section (3D Galaxy + 3D Hovering Thanos Throne)
+    // =========================================================================
+    tl.to(
+      state,
+      {
+        cameraZ: 9.65,
+        cameraLookX: 0.0,
+        cameraLookY: 0.05,
+        duration: 18,
+        ease: 'none',
+      },
+      82
     );
 
     // Virtual scroll state (0.0 -> 1.0)

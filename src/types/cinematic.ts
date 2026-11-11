@@ -1,9 +1,9 @@
-export type SceneStage = 1 | 2 | 3 | 4 | 5 | 6 | 7;
+export type SceneStage = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 
 export interface CinematicState {
   // Overall scroll progress 0 -> 1
   progress: number;
-  // Active scene number 1 -> 7
+  // Active scene number 1 -> 8
   sceneStage: SceneStage;
 
   // Camera & Character orientation / comfortable distance from screen
@@ -60,6 +60,13 @@ export interface CinematicState {
   aboutChapterProgress: number; // 0 -> 2 across the 3 About Me chapters
   aboutRockUserYaw: number; // Interactive drag/slider yaw offset
   aboutRockUserPitch: number; // Interactive drag/slider pitch offset
+
+  // Screen 3 (MY SKILLS Section) & About-to-Skills Reality Transition State
+  skillsTransitionProgress: number; // 0 -> 1 -> 0 crimson Reality Stone wave between About and Skills
+  skillsRevealProgress: number; // 0 = hidden, 1 = 3D Galaxy + 3D Hovering Thanos Throne fully active
+  throneUserYaw: number; // Interactive drag/slider yaw for Thanos's 3D Chair Throne
+  throneUserPitch: number; // Interactive drag/slider pitch for Thanos's 3D Chair Throne
+  activeSkillStoneIndex: number; // -1 = all stones, 0..5 = active Infinity Stone skill domain
 }
 
 export interface DirectorOverrides {
@@ -125,6 +132,11 @@ export const INITIAL_CINEMATIC_STATE: CinematicState = {
   aboutChapterProgress: 0,
   aboutRockUserYaw: 0,
   aboutRockUserPitch: 0,
+  skillsTransitionProgress: 0,
+  skillsRevealProgress: 0,
+  throneUserYaw: 0,
+  throneUserPitch: 0,
+  activeSkillStoneIndex: -1,
 };
 
 export const SCENE_CHAPTERS: Array<{
@@ -143,36 +155,42 @@ export const SCENE_CHAPTERS: Array<{
     stage: 2,
     title: 'Scene 02 · Head Rotates to Front',
     subtitle: 'Only Galactus’s head rotates smoothly to face forward while his torso stays anchored.',
-    scrollTargetRatio: 0.16,
+    scrollTargetRatio: 0.12,
   },
   {
     stage: 3,
     title: 'Scene 03 · Multicolor Line Laser Volley',
     subtitle: 'Balanced eye glow ignites a spectrum of multicolor line laser beams.',
-    scrollTargetRatio: 0.24,
+    scrollTargetRatio: 0.19,
   },
   {
     stage: 4,
     title: 'Scene 04 · Wireframe Outline Laser Tracing',
     subtitle: 'Multicolor laser lines trace the wireframe outline of "Hi, My name is...".',
-    scrollTargetRatio: 0.36,
+    scrollTargetRatio: 0.28,
   },
   {
     stage: 5,
     title: 'Scene 05 · Engraving "Md Kajal Mia" Outline',
     subtitle: 'Laser beams complete the vector wireframe stroke animation across the screen.',
-    scrollTargetRatio: 0.48,
+    scrollTargetRatio: 0.37,
   },
   {
     stage: 6,
     title: 'Scene 06 · Completed Wireframe & Fill Reveal',
     subtitle: '"Hi, My name is Md Kajal Mia" — Senior Software Engineer | Full-Stack Developer.',
-    scrollTargetRatio: 0.58,
+    scrollTargetRatio: 0.43,
   },
   {
     stage: 7,
-    title: 'Scene 07 · About Section · 3D Crystal Obsidian Space',
-    subtitle: 'Galactus dissolves into deep space as the 3D obsidian & crystal rock monolith emerges.',
-    scrollTargetRatio: 0.78,
+    title: 'Scene 07 · About Section · 3D Iron Man Blue Neon',
+    subtitle: 'Galactus dissolves into deep space as the 3D Iron Man Blue Neon Hologram emerges.',
+    scrollTargetRatio: 0.56,
+  },
+  {
+    stage: 8,
+    title: 'Scene 08 · MY SKILLS · 3D Thanos Throne & Galaxy',
+    subtitle: 'Reality warps into the 3D Cosmic Galaxy with Thanos hovering on his Space Throne.',
+    scrollTargetRatio: 0.90,
   },
 ];

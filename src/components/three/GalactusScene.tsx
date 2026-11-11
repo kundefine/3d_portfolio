@@ -8,6 +8,8 @@ import { EnergyBeamSystem } from './EnergyBeam';
 import { CosmicParticlesSystem } from './CosmicParticles';
 import { AboutCrystalRocksSystem } from './AboutCrystalRocks';
 import { HolographicTransition3DSystem } from './HolographicTransition3D';
+import { ThanosSkillsScene3DSystem } from './ThanosSkillsScene3D';
+import { RealityStoneTransitionPass } from './RealityStoneTransitionPass';
 import { cosmicAudio } from '../../utils/cosmicAudio';
 
 // Pre-allocated module-scope vectors & colors to avoid GC in the render loop
@@ -16,6 +18,7 @@ const _rightEyeWorld = new THREE.Vector3();
 const _lookAtTarget = new THREE.Vector3();
 const _heroBgColor = new THREE.Color('#040208');
 const _aboutBgColor = new THREE.Color('#0b0c10');
+const _titanDustColor = new THREE.Color('#1f0e08');
 const _blendedBgColor = new THREE.Color('#040208');
 
 interface GalactusSceneProps {
@@ -134,11 +137,37 @@ export const GalactusScene: React.FC<GalactusSceneProps> = ({
     const holoTransition3D = new HolographicTransition3DSystem(isSoftwareGl);
     scene.add(holoTransition3D.group);
 
+    // 4B. Dedicated Scene B for MY SKILLS (3D Background Galaxy + 3D Hovering Thanos Chair Throne)
+    // Rendered into rtSceneB during the Reality Stone procedural environment wipe
+    const skillsScene = new THREE.Scene();
+    skillsScene.background = new THREE.Color('#08020a');
+    skillsScene.fog = new THREE.FogExp2('#08020a', 0.015);
+    skillsScene.environment = envTexture;
+
+    const skillsHemiLight = new THREE.HemisphereLight('#f43f5e', '#090314', 1.45);
+    skillsScene.add(skillsHemiLight);
+
+    const skillsKeyLight = new THREE.DirectionalLight('#38bdf8', 2.4);
+    skillsKeyLight.position.set(4.5, 5.5, 6.0);
+    skillsScene.add(skillsKeyLight);
+
+    const skillsRimLight = new THREE.DirectionalLight('#c084fc', 2.6);
+    skillsRimLight.position.set(-5.5, 3.0, -3.5);
+    skillsScene.add(skillsRimLight);
+
+    const thanosSkillsScene3D = new ThanosSkillsScene3DSystem(isSoftwareGl);
+    skillsScene.add(thanosSkillsScene3D.group);
+
+    // Dual-RenderTarget Reality Stone Post-Processing Pass (tSceneA -> tSceneB)
+    const pixelRatio = renderer.getPixelRatio();
+    const realityTransitionPass = new RealityStoneTransitionPass(width, height, pixelRatio);
+
     if (!isSoftwareGl) {
       renderer.compile(scene, camera);
+      renderer.compile(skillsScene, camera);
     }
 
-    // 5. Pointer Parallax, Interactive 3D Rock Dragging, & Responsive Resize
+    // 5. Pointer Parallax, Interactive 3D Rock / Thanos Throne Dragging, & Responsive Resize
     let targetPointerX = 0;
     let targetPointerY = 0;
     let dampedPointerX = 0;
@@ -149,7 +178,9 @@ export const GalactusScene: React.FC<GalactusSceneProps> = ({
     let lastDragY = 0;
 
     const handlePointerDown = (e: PointerEvent) => {
-      if (cinematicStateRef.current.aboutRevealProgress < 0.25) return;
+      const canDragAbout = cinematicStateRef.current.aboutRevealProgress >= 0.25;
+      const canDragSkills = cinematicStateRef.current.skillsRevealProgress >= 0.25;
+      if (!canDragAbout && !canDragSkills) return;
       if (
         e.target instanceof Element &&
         e.target.closest('button, a, input, select, textarea, [data-no-rock-drag="true"]')
@@ -162,17 +193,31 @@ export const GalactusScene: React.FC<GalactusSceneProps> = ({
     };
 
     const handlePointerMove = (e: PointerEvent) => {
-      if (isDraggingRock && cinematicStateRef.current.aboutRevealProgress >= 0.25) {
+      if (isDraggingRock) {
         const dx = e.clientX - lastDragX;
         const dy = e.clientY - lastDragY;
         lastDragX = e.clientX;
         lastDragY = e.clientY;
-        cinematicStateRef.current.aboutRockUserYaw += dx * 0.0065;
-        cinematicStateRef.current.aboutRockUserPitch = THREE.MathUtils.clamp(
-          cinematicStateRef.current.aboutRockUserPitch + dy * 0.0045,
-          -0.65,
-          0.65
-        );
+
+        if (cinematicStateRef.current.skillsRevealProgress >= 0.25) {
+          cinematicStateRef.current.throneUserYaw = THREE.MathUtils.clamp(
+            cinematicStateRef.current.throneUserYaw + dx * 0.0055,
+            -0.8,
+            0.8
+          );
+          cinematicStateRef.current.throneUserPitch = THREE.MathUtils.clamp(
+            cinematicStateRef.current.throneUserPitch + dy * 0.0038,
+            -0.38,
+            0.38
+          );
+        } else if (cinematicStateRef.current.aboutRevealProgress >= 0.25) {
+          cinematicStateRef.current.aboutRockUserYaw += dx * 0.0065;
+          cinematicStateRef.current.aboutRockUserPitch = THREE.MathUtils.clamp(
+            cinematicStateRef.current.aboutRockUserPitch + dy * 0.0045,
+            -0.65,
+            0.65
+          );
+        }
       }
 
       if (overridesRef.current.reducedMotion) return;
@@ -197,6 +242,7 @@ export const GalactusScene: React.FC<GalactusSceneProps> = ({
       camera.aspect = aspect;
       camera.updateProjectionMatrix();
       renderer.setSize(w, h);
+      realityTransitionPass.setSize(w, h, renderer.getPixelRatio());
     };
     window.addEventListener('resize', handleResize);
 
@@ -272,47 +318,82 @@ export const GalactusScene: React.FC<GalactusSceneProps> = ({
       _lookAtTarget.set(dampedLookX + dampedPointerX * 0.08, dampedLookY, 0);
       camera.lookAt(_lookAtTarget);
 
-      // Smoothly blend background tone between Deep Space Violet-Black (Hero) and Obsidian Charcoal (About)
-      _blendedBgColor.copy(_heroBgColor).lerp(_aboutBgColor, state.aboutRevealProgress);
+      const wipeProgress = THREE.MathUtils.clamp(state.skillsRevealProgress || 0, 0, 1);
+      const isTransitioningToSkills = wipeProgress > 0.001 && wipeProgress < 0.999;
+
+      // Smoothly blend Scene A background tone (Hero -> About -> Warm Dusty Amber during Reality Stone wipe)
+      _blendedBgColor
+        .copy(_heroBgColor)
+        .lerp(_aboutBgColor, state.aboutRevealProgress)
+        .lerp(_titanDustColor, Math.sin(wipeProgress * Math.PI) * 0.65);
       (scene.background as THREE.Color).copy(_blendedBgColor);
       fog.color.copy(_blendedBgColor);
       fog.density = THREE.MathUtils.lerp(0.042, 0.024, state.aboutRevealProgress);
 
-      // Update Screen 1: Galactus & Laser Systems
-      galactusRig.update(elapsed, state, overrides, dampedPointerX, dampedPointerY);
+      // Update Scene A (Screen 1: Galactus + Screen 2: About 3D Iron Man Hologram) when visible
+      if (wipeProgress < 0.999) {
+        galactusRig.update(elapsed, state, overrides, dampedPointerX, dampedPointerY);
 
-      const effectiveDepth = state.depthRelief * overrides.reliefMultiplier;
-      galactusRig.getEyePositions3D(_leftEyeWorld, _rightEyeWorld, effectiveDepth);
+        const effectiveDepth = state.depthRelief * overrides.reliefMultiplier;
+        galactusRig.getEyePositions3D(_leftEyeWorld, _rightEyeWorld, effectiveDepth);
 
-      eyeGlow.update(elapsed, _leftEyeWorld, _rightEyeWorld, state, overrides);
-      energyBeam.update(elapsed, _leftEyeWorld, _rightEyeWorld, camera, state, overrides);
+        eyeGlow.update(elapsed, _leftEyeWorld, _rightEyeWorld, state, overrides);
+        energyBeam.update(elapsed, _leftEyeWorld, _rightEyeWorld, camera, state, overrides);
 
-      // Update Screen 2: About 3D Obsidian & Crystal Rocks + Diagonal Micro-Shard Stream
-      aboutCrystalRocks.update(
-        elapsed,
-        state,
-        overrides,
-        dampedPointerX,
-        dampedPointerY,
-        isPortrait
-      );
+        aboutCrystalRocks.update(
+          elapsed,
+          state,
+          overrides,
+          dampedPointerX,
+          dampedPointerY,
+          isPortrait
+        );
 
-      // Update 3D Spatial Holographic Scan-Grid & Voxel Morph Stream between Screen 1 and Screen 2
-      holoTransition3D.update(
-        elapsed,
-        state,
-        overrides,
-        dampedPointerX,
-        dampedPointerY
-      );
+        holoTransition3D.update(
+          elapsed,
+          state,
+          overrides,
+          dampedPointerX,
+          dampedPointerY
+        );
 
-      cosmicParticles.update(elapsed, state, overrides);
+        cosmicParticles.update(elapsed, state, overrides);
+      }
+
+      // Update Scene B (Screen 3: MY SKILLS — 3D Thanos Chair Throne & 3D Background Galaxy) when visible
+      if (wipeProgress > 0.001) {
+        thanosSkillsScene3D.update(
+          elapsed,
+          state,
+          overrides,
+          dampedPointerX,
+          dampedPointerY,
+          isPortrait
+        );
+      }
+
       cosmicAudio.updateFromCinematicState(state);
 
       rimLightLeft.intensity = 2.0 * state.rimLightIntensity;
       rimLightRight.intensity = 1.9 * state.rimLightIntensity;
 
-      renderer.render(scene, camera);
+      // Render via Dual-RenderTarget Reality Stone Post-Processing Wipe when transitioning
+      if (isTransitioningToSkills) {
+        realityTransitionPass.renderTransition(
+          renderer,
+          scene,
+          skillsScene,
+          camera,
+          wipeProgress,
+          elapsed
+        );
+      } else if (wipeProgress >= 0.999) {
+        renderer.setRenderTarget(null);
+        renderer.render(skillsScene, camera);
+      } else {
+        renderer.setRenderTarget(null);
+        renderer.render(scene, camera);
+      }
 
       if (isSoftwareGl) {
         afterDraw(tick);
@@ -340,6 +421,8 @@ export const GalactusScene: React.FC<GalactusSceneProps> = ({
       cosmicParticles.dispose();
       aboutCrystalRocks.dispose();
       holoTransition3D.dispose();
+      thanosSkillsScene3D.dispose();
+      realityTransitionPass.dispose();
       envTexture.dispose();
       renderer.dispose();
     };

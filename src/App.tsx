@@ -202,6 +202,16 @@ export default function App() {
             About
           </a>
           <a
+            href="#skills-section"
+            onClick={(e) => {
+              e.preventDefault();
+              handleJumpToScene(8);
+            }}
+            className="hover:text-white hover:underline underline-offset-4 transition-colors whitespace-nowrap shrink-0"
+          >
+            My Skills
+          </a>
+          <a
             href="#works"
             onClick={(e) => {
               e.preventDefault();

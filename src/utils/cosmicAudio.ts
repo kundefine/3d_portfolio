@@ -436,6 +436,7 @@ class CosmicAudioEngine {
       5: 2560,
       6: 2940,
       7: 3320,
+      8: 3680,
     };
 
     const freq = stageBaseFreq[stage] || 1680;

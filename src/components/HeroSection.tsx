@@ -21,6 +21,7 @@ import { GalactusScene } from './three/GalactusScene';
 import { ScrollAnimationController } from './ScrollAnimationController';
 import { IntroductionText } from './IntroductionText';
 import { AboutSectionOverlay } from './AboutSectionOverlay';
+import { SkillsSectionOverlay } from './SkillsSectionOverlay';
 import { cosmicAudio } from '../utils/cosmicAudio';
 
 interface HeroSectionProps {
@@ -87,9 +88,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
       const prev = prevStageRef.current;
       prevStageRef.current = stage;
       cosmicAudio.playStageChime(stage);
-      if (stage === 7) {
+      if (stage >= 7) {
         setDockCollapsed(true);
-      } else if (prev === 7 && stage < 7) {
+      } else if (prev >= 7 && stage < 7) {
         setDockCollapsed(false);
       }
     }
@@ -248,6 +249,15 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           onExploreWork={onExploreWork}
           onContactClick={onContactClick}
         />
+
+        {/* Screen 3: MY SKILLS Section — Reality Stone Transition Video + 3D Thanos Chair Throne & Infinity Stones */}
+        <SkillsSectionOverlay
+          cinematicStateRef={cinematicStateRef}
+          overridesRef={overridesRef}
+          onSeekToProgress={seekToProgress}
+          onExploreWork={onExploreWork}
+          onContactClick={onContactClick}
+        />
       </div>
 
       {/* Cinematic Entrance Reveal Vignette Curtain */}
@@ -278,7 +288,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
       <button
         type="button"
         onClick={() => {
-          const nextStage = (activeStage < 7 ? activeStage + 1 : 1) as SceneStage;
+          const nextStage = (activeStage < 8 ? activeStage + 1 : 1) as SceneStage;
           jumpToScene(nextStage);
         }}
         title="Scroll with mouse wheel, touch, or arrow keys — or click to advance to the next 3D stage"
@@ -293,7 +303,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
         <span className="text-xs font-mono text-[#e9d5ff] group-hover:text-white transition-colors tabular-nums">
           {scrollProgressPct === 0
             ? 'Scroll · 0%'
-            : `0${activeStage}/07 · ${scrollProgressPct}%`}
+            : `0${activeStage}/08 · ${scrollProgressPct}%`}
         </span>
 
         {/* Animated Cascading Downward Chevrons */}
@@ -442,7 +452,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                   { stage: 4 as SceneStage, label: '04. Outline Trace' },
                   { stage: 5 as SceneStage, label: '05. Name Wireframe' },
                   { stage: 6 as SceneStage, label: '06. Hero Reveal' },
-                  { stage: 7 as SceneStage, label: '07. About (3D Rocks)' },
+                  { stage: 7 as SceneStage, label: '07. About (Iron Man)' },
+                  { stage: 8 as SceneStage, label: '08. My Skills (Thanos)' },
                 ].map((item) => {
                   const isActive = activeStage === item.stage;
                   return (
